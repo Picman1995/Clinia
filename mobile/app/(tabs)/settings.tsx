@@ -1,9 +1,10 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, Muted, PrimaryButton, Screen, Title } from '@/src/components/ui';
 import { api } from '@/src/services/api';
+import { getOcrBaseUrl } from '@/src/services/ocr';
 import { ThemePreference, useThemePreference } from '@/src/theme/ThemeContext';
 
 const OPTIONS: { label: string; value: ThemePreference }[] = [
@@ -98,6 +99,12 @@ export default function SettingsScreen() {
         <Muted>Gestionar precios especiales</Muted>
       </Pressable>
       <Pressable
+        onPress={() => router.push('/import-horarios' as Href)}
+        style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={{ color: colors.text, fontWeight: '700' }}>Importar horarios (OCR)</Text>
+        <Muted>Foto de planilla ControleODONTO</Muted>
+      </Pressable>
+      <Pressable
         onPress={() => router.push('/reports')}
         style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={{ color: colors.text, fontWeight: '700' }}>Reportes</Text>
@@ -106,6 +113,8 @@ export default function SettingsScreen() {
 
       <Muted>API</Muted>
       <Text style={{ color: colors.textMuted, fontSize: 12 }}>{api.getBaseUrl()}</Text>
+      <Muted>OCR</Muted>
+      <Text style={{ color: colors.textMuted, fontSize: 12 }}>{getOcrBaseUrl()}</Text>
     </Screen>
   );
 }

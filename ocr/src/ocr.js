@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 import { createWorker } from 'tesseract.js';
 
 let workerPromise = null;
@@ -17,22 +16,9 @@ async function getWorker() {
   return workerPromise;
 }
 
-export async function preprocessImage(buffer) {
-  return sharp(buffer)
-    .rotate()
-    .resize({ width: 2600, withoutEnlargement: false })
-    .grayscale()
-    .normalize()
-    .linear(1.25, -20)
-    .sharpen({ sigma: 1.2 })
-    .png()
-    .toBuffer();
-}
-
 export async function recognizeImage(buffer) {
-  const prepared = await preprocessImage(buffer);
   const worker = await getWorker();
-  const result = await worker.recognize(prepared);
+  const result = await worker.recognize(buffer);
   return {
     text: result.data.text || '',
     confidence: result.data.confidence ?? null,

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { recognizeImage, shutdownOcr } from './ocr.js';
 import { parseHorariosText, toCliniaPatientPayload } from './parser.js';
+import { assessHorariosDocument } from './validate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -20,6 +21,20 @@ const port = Number(process.env.PORT || 8090);
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
+
+function buildExtractPayload(ocr, parsed) {
+  const assessment = assessHorariosDocument(ocr.text, ocr.confidence, parsed.patientsCount);
+  return {
+    assessment,
+    ocr: {
+      confidence: ocr.confidence,
+      textPreview: (ocr.text || '').slice(0, 1200),
+    },
+    ...parsed,
+    cliniaPatients: parsed.patients.map(toCliniaPatientPayload),
+    rawText: ocr.text,
+  };
+}
 
 app.get('/health', (_req, res) => {
   res.json({
@@ -36,7 +51,9 @@ app.post('/parse', (req, res) => {
     return;
   }
   const parsed = parseHorariosText(text);
+  const assessment = assessHorariosDocument(text, 100, parsed.patientsCount);
   res.json({
+    assessment,
     ...parsed,
     cliniaPatients: parsed.patients.map(toCliniaPatientPayload),
   });
@@ -50,15 +67,12 @@ app.post('/extract', upload.single('image'), async (req, res) => {
     }
     const ocr = await recognizeImage(req.file.buffer);
     const parsed = parseHorariosText(ocr.text);
-    res.json({
-      ocr: {
-        confidence: ocr.confidence,
-        textPreview: ocr.text.slice(0, 1200),
-      },
-      ...parsed,
-      cliniaPatients: parsed.patients.map(toCliniaPatientPayload),
-      rawText: ocr.text,
-    });
+    const payload = buildExtractPayload(ocr, parsed);
+    if (!payload.assessment.ok) {
+      res.status(422).json(payload);
+      return;
+    }
+    res.json(payload);
   } catch (err) {
     res.status(500).json({
       message: err instanceof Error ? err.message : 'Error OCR',
@@ -72,16 +86,12 @@ app.post('/extract/sample', async (_req, res) => {
     const buffer = fs.readFileSync(samplePath);
     const ocr = await recognizeImage(buffer);
     const parsed = parseHorariosText(ocr.text);
-    res.json({
-      sample: samplePath,
-      ocr: {
-        confidence: ocr.confidence,
-        textPreview: ocr.text.slice(0, 1200),
-      },
-      ...parsed,
-      cliniaPatients: parsed.patients.map(toCliniaPatientPayload),
-      rawText: ocr.text,
-    });
+    const payload = buildExtractPayload(ocr, parsed);
+    if (!payload.assessment.ok) {
+      res.status(422).json({ ...payload, sample: samplePath });
+      return;
+    }
+    res.json({ ...payload, sample: samplePath });
   } catch (err) {
     res.status(500).json({
       message: err instanceof Error ? err.message : 'Error OCR sample',
@@ -93,8 +103,10 @@ app.post('/parse/fixture', (_req, res) => {
   const fixturePath = path.join(rootDir, 'fixtures', 'horarios-ejemplo.txt');
   const text = fs.readFileSync(fixturePath, 'utf8');
   const parsed = parseHorariosText(text);
+  const assessment = assessHorariosDocument(text, 100, parsed.patientsCount);
   res.json({
     fixture: fixturePath,
+    assessment,
     ...parsed,
     cliniaPatients: parsed.patients.map(toCliniaPatientPayload),
   });

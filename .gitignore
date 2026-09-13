@@ -39,6 +39,7 @@ mobile/.eas/
 ocr/node_modules/
 ocr/.cache/
 ocr/tmp/
+ocr/*.traineddata
 
 # Logs
 *.log

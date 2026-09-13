@@ -20,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "package": "py.com.clinia.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -37,7 +38,14 @@
           "backgroundColor": "#0F766E"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Clinia necesita acceso a tus fotos para importar hojas de horarios.",
+          "cameraPermission": "Clinia necesita la camara para fotografiar hojas de horarios."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

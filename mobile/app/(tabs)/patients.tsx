@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -65,6 +65,10 @@ export default function PatientsScreen() {
       <PrimaryButton
         label="Nuevo paciente"
         onPress={() => router.push('/patient/new')}
+      />
+      <PrimaryButton
+        label="Importar desde foto (OCR)"
+        onPress={() => router.push('/import-horarios' as Href)}
       />
 
       {loading ? (

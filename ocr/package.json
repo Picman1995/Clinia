@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "start": "node src/server.js",
     "test:parser": "node src/test-parser.js",
@@ -12,7 +15,6 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "multer": "^2.0.2",
-    "sharp": "^0.35.4",
     "tesseract.js": "^6.0.1"
   }
 }

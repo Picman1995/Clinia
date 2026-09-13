@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,6 +36,8 @@ type SelectedItem = {
 export default function NewAppointmentScreen() {
   const router = useRouter();
   const { colors } = useThemePreference();
+  const params = useLocalSearchParams<{ patientId?: string }>();
+  const preselectedPatientId = params.patientId ? Number(params.patientId) : null;
 
   const [patients, setPatients] = useState<PatientResponse[]>([]);
   const [services, setServices] = useState<ServiceResponse[]>([]);
@@ -64,10 +66,14 @@ export default function NewAppointmentScreen() {
         setServices(serviceData);
         setZones(zoneData);
         setPromotions(promotionData);
+        if (Number.isFinite(preselectedPatientId) && preselectedPatientId !== null) {
+          const found = patientData.find((item) => item.id === preselectedPatientId) ?? null;
+          setSelectedPatient(found);
+        }
       })
       .catch((err) => Alert.alert('Error', err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [preselectedPatientId]);
 
   const filteredPatients = useMemo(() => {
     const q = patientQuery.trim().toLowerCase();
