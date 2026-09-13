@@ -2,7 +2,7 @@
   "expo": {
     "name": "Clinia",
     "slug": "clinia",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "clinia",
@@ -10,7 +10,12 @@
     "owner": "picman",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "py.com.clinia.app"
+      "bundleIdentifier": "py.com.clinia.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -45,7 +50,16 @@
           "photosPermission": "Clinia necesita acceso a tus fotos para importar hojas de horarios.",
           "cameraPermission": "Clinia necesita la camara para fotografiar hojas de horarios."
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "./plugins/withCleartextTraffic.js"
     ],
     "experiments": {
       "typedRoutes": true
