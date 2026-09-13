@@ -27,12 +27,20 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const { colorScheme } = useThemePreference();
+  const { colorScheme, colors } = useThemePreference();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.text,
+          contentStyle: { backgroundColor: colors.background },
+        }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="patient/new" options={{ title: 'Nuevo paciente' }} />
+        <Stack.Screen name="patient/edit" options={{ title: 'Editar paciente' }} />
+        <Stack.Screen name="patient/[id]" options={{ title: 'Detalle' }} />
       </Stack>
     </ThemeProvider>
   );

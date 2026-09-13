@@ -40,6 +40,7 @@ En un telefono fisico usa la IP local de tu PC, no `localhost`.
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+$env:DB_PASSWORD = "tu_password_local"
 cd backend
 mvn spring-boot:run
 ```

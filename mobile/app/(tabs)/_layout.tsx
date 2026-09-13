@@ -39,6 +39,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="services"
+        options={{
+          title: 'Servicios',
+          tabBarIcon: ({ color }) => <TabIcon name="medkit" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="agenda"
         options={{
           title: 'Agenda',
@@ -48,7 +55,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Configuracion',
+          title: 'Mas',
           tabBarIcon: ({ color }) => <TabIcon name="cog" color={color} />,
         }}
       />

@@ -13,6 +13,7 @@ Thumbs.db
 .env.*.local
 backend/.env
 mobile/.env
+backend/src/main/resources/application-local.properties
 *.pem
 *.p12
 credentials.json
