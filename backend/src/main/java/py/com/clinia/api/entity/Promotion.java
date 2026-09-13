@@ -1,11 +1,15 @@
 package py.com.clinia.api.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "promotions")
@@ -26,6 +30,9 @@ public class Promotion extends BaseEntity {
     private LocalDate startDate;
 
     private LocalDate endDate;
+
+    @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PromotionItem> items = new ArrayList<>();
 
     public String getName() {
         return name;
@@ -73,5 +80,13 @@ public class Promotion extends BaseEntity {
 
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
+    }
+
+    public List<PromotionItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<PromotionItem> items) {
+        this.items = items;
     }
 }

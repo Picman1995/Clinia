@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
+import { Muted, Screen, Title } from '@/src/components/ui';
 import { ThemePreference, useThemePreference } from '@/src/theme/ThemeContext';
 
 const OPTIONS: { label: string; value: ThemePreference }[] = [
@@ -9,12 +11,13 @@ const OPTIONS: { label: string; value: ThemePreference }[] = [
 ];
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { colors, preference, setPreference } = useThemePreference();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.text }]}>Configuracion</Text>
-      <Text style={{ color: colors.textMuted }}>Tema de la aplicacion</Text>
+    <Screen>
+      <Title>Configuracion</Title>
+      <Muted>Tema de la aplicacion</Muted>
 
       <View style={styles.row}>
         {OPTIONS.map((option) => {
@@ -37,20 +40,19 @@ export default function SettingsScreen() {
           );
         })}
       </View>
-    </View>
+
+      <Muted>Modulos</Muted>
+      <Pressable
+        onPress={() => router.push('/promotion')}
+        style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={{ color: colors.text, fontWeight: '700' }}>Promociones</Text>
+        <Muted>Gestionar precios especiales</Muted>
+      </Pressable>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    gap: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
   row: {
     flexDirection: 'row',
     gap: 10,
@@ -62,5 +64,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  link: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    gap: 4,
   },
 });

@@ -16,6 +16,7 @@ import {
   api,
   formatGs,
   PatientResponse,
+  PromotionResponse,
   ServiceResponse,
   ServiceZoneResponse,
   todayPy,
@@ -39,9 +40,11 @@ export default function NewAppointmentScreen() {
   const [patients, setPatients] = useState<PatientResponse[]>([]);
   const [services, setServices] = useState<ServiceResponse[]>([]);
   const [zones, setZones] = useState<ServiceZoneResponse[]>([]);
+  const [promotions, setPromotions] = useState<PromotionResponse[]>([]);
   const [patientQuery, setPatientQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<PatientResponse | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(null);
   const [date, setDate] = useState(todayPy());
   const [time, setTime] = useState('09:00');
   const [deposit, setDeposit] = useState('0');
@@ -54,11 +57,13 @@ export default function NewAppointmentScreen() {
       api.searchPatients(undefined, 'ACTIVO'),
       api.searchServices({ status: 'ACTIVO' }),
       api.searchZones(undefined, 'ACTIVO'),
+      api.listPromotions({ status: 'ACTIVO', onlyValidToday: true }),
     ])
-      .then(([patientData, serviceData, zoneData]) => {
+      .then(([patientData, serviceData, zoneData, promotionData]) => {
         setPatients(patientData);
         setServices(serviceData);
         setZones(zoneData);
+        setPromotions(promotionData);
       })
       .catch((err) => Alert.alert('Error', err.message))
       .finally(() => setLoading(false));
@@ -77,17 +82,23 @@ export default function NewAppointmentScreen() {
       .slice(0, 8);
   }, [patientQuery, patients]);
 
+  const selectedPromotion = promotions.find((item) => item.id === selectedPromotionId) ?? null;
+
   const totals = useMemo(() => {
     const durationMinutes = selectedItems.reduce((sum, item) => sum + item.durationMinutes, 0);
-    const totalAmount = selectedItems.reduce((sum, item) => sum + item.price, 0);
+    const subtotal = selectedItems.reduce((sum, item) => sum + item.price, 0);
+    const totalAmount = selectedPromotion ? Number(selectedPromotion.promotionalPrice) : subtotal;
+    const discountAmount = Math.max(subtotal - totalAmount, 0);
     const depositAmount = Number(deposit || '0');
     return {
       durationMinutes,
+      subtotal,
+      discountAmount,
       totalAmount,
       depositAmount,
       balanceAmount: Math.max(totalAmount - depositAmount, 0),
     };
-  }, [selectedItems, deposit]);
+  }, [selectedItems, deposit, selectedPromotion]);
 
   const toggleZone = (zone: ServiceZoneResponse) => {
     const key = `zone-${zone.id}`;
@@ -158,6 +169,7 @@ export default function NewAppointmentScreen() {
     try {
       await api.createAppointment({
         patientId: selectedPatient.id,
+        promotionId: selectedPromotionId ?? undefined,
         startAt: toPyOffset(date, time),
         depositAmount: totals.depositAmount,
         notes: notes.trim() || undefined,
@@ -191,7 +203,7 @@ export default function NewAppointmentScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <Title>Nueva reserva</Title>
-        <Muted>Paciente, servicios, horario y sena</Muted>
+        <Muted>Paciente, servicios, promocion, horario y sena</Muted>
 
         <Field
           label="Buscar paciente"
@@ -282,6 +294,49 @@ export default function NewAppointmentScreen() {
           })}
         </View>
 
+        <Text style={[styles.section, { color: colors.text }]}>Promocion</Text>
+        <View style={styles.wrap}>
+          <Pressable
+            onPress={() => setSelectedPromotionId(null)}
+            style={[
+              styles.chip,
+              {
+                backgroundColor: selectedPromotionId === null ? colors.tint : colors.card,
+                borderColor: colors.border,
+              },
+            ]}>
+            <Text
+              style={{
+                color: selectedPromotionId === null ? '#FFFFFF' : colors.text,
+                fontWeight: '600',
+              }}>
+              Sin promocion
+            </Text>
+          </Pressable>
+          {promotions.map((promotion) => {
+            const selected = selectedPromotionId === promotion.id;
+            return (
+              <Pressable
+                key={promotion.id}
+                onPress={() => setSelectedPromotionId(promotion.id)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: selected ? colors.tint : colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}>
+                <Text style={{ color: selected ? '#FFFFFF' : colors.text, fontWeight: '600' }}>
+                  {promotion.name}
+                </Text>
+                <Text style={{ color: selected ? '#FFFFFF' : colors.textMuted, fontSize: 12 }}>
+                  {formatGs(promotion.promotionalPrice)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <Field label="Fecha (AAAA-MM-DD)" value={date} onChangeText={setDate} />
         <Field label="Hora (HH:MM)" value={time} onChangeText={setTime} placeholder="09:00" />
         <Field
@@ -294,6 +349,8 @@ export default function NewAppointmentScreen() {
 
         <Card>
           <Muted>Duracion estimada: {totals.durationMinutes} min</Muted>
+          <Muted>Subtotal: {formatGs(totals.subtotal)}</Muted>
+          <Muted>Descuento: {formatGs(totals.discountAmount)}</Muted>
           <Muted>Total: {formatGs(totals.totalAmount)}</Muted>
           <Muted>Sena: {formatGs(totals.depositAmount)}</Muted>
           <Text style={{ color: colors.text, fontWeight: '700' }}>

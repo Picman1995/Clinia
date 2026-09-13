@@ -114,6 +114,7 @@ export type AppointmentItemRequest = {
 export type AppointmentRequest = {
   patientId: number;
   professionalId?: number;
+  promotionId?: number;
   startAt: string;
   depositAmount: number;
   notes?: string;
@@ -154,10 +155,62 @@ export type AppointmentResponse = {
   items: AppointmentItemResponse[];
 };
 
+export type PaymentType = 'SENIA' | 'PARCIAL' | 'FINAL' | 'OTRO';
+
+export type PromotionItemResponse = {
+  id: number;
+  serviceId?: number | null;
+  serviceName?: string | null;
+  serviceZoneId?: number | null;
+  serviceZoneName?: string | null;
+};
+
+export type PromotionResponse = {
+  id: number;
+  name: string;
+  description?: string | null;
+  normalPrice: number;
+  promotionalPrice: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  status: EntityStatus;
+  items: PromotionItemResponse[];
+};
+
+export type PromotionRequest = {
+  name: string;
+  description?: string;
+  normalPrice: number;
+  promotionalPrice: number;
+  startDate?: string;
+  endDate?: string;
+  items?: { serviceId?: number; serviceZoneId?: number }[];
+};
+
+export type PaymentResponse = {
+  id: number;
+  appointmentId: number;
+  patientId: number;
+  patientName: string;
+  amount: number;
+  paymentType: PaymentType;
+  paidAt: string;
+  notes?: string | null;
+  status: EntityStatus;
+};
+
+export type PaymentCreateRequest = {
+  appointmentId: number;
+  amount: number;
+  paymentType: PaymentType;
+  paidAt?: string;
+  notes?: string;
+};
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
-  query?: Record<string, string | number | undefined | null>;
+  query?: Record<string, string | number | boolean | undefined | null>;
 };
 
 function buildUrl(path: string, query?: RequestOptions['query']) {
@@ -247,6 +300,21 @@ export const api = {
       method: 'PUT',
       body: { appointmentStatus },
     }),
+
+  listPromotions: (params?: { status?: EntityStatus; onlyValidToday?: boolean }) =>
+    request<PromotionResponse[]>('/api/promotions', { query: params }),
+  getPromotion: (id: number) => request<PromotionResponse>(`/api/promotions/${id}`),
+  createPromotion: (body: PromotionRequest) =>
+    request<PromotionResponse>('/api/promotions', { method: 'POST', body }),
+  updatePromotion: (id: number, body: PromotionRequest) =>
+    request<PromotionResponse>(`/api/promotions/${id}`, { method: 'PUT', body }),
+  deactivatePromotion: (id: number) =>
+    request<PromotionResponse>(`/api/promotions/${id}/deactivate`, { method: 'POST' }),
+
+  listPayments: (params: { appointmentId?: number; patientId?: number }) =>
+    request<PaymentResponse[]>('/api/payments', { query: params }),
+  createPayment: (body: PaymentCreateRequest) =>
+    request<PaymentResponse>('/api/payments', { method: 'POST', body }),
 };
 
 export function formatGs(amount: number | string) {

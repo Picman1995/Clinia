@@ -16,6 +16,8 @@ public record AppointmentRequest(
 
         Long professionalId,
 
+        Long promotionId,
+
         @NotNull(message = "La fecha y hora de inicio son obligatorias")
         OffsetDateTime startAt,
 

@@ -9,26 +9,33 @@ import py.com.clinia.api.dto.AppointmentStatusRequest;
 import py.com.clinia.api.entity.Appointment;
 import py.com.clinia.api.entity.AppointmentItem;
 import py.com.clinia.api.entity.Patient;
+import py.com.clinia.api.entity.Payment;
 import py.com.clinia.api.entity.Professional;
+import py.com.clinia.api.entity.Promotion;
+import py.com.clinia.api.entity.PromotionItem;
 import py.com.clinia.api.entity.ServiceZone;
 import py.com.clinia.api.enums.AppointmentStatus;
 import py.com.clinia.api.enums.EntityStatus;
-import py.com.clinia.api.enums.PaymentStatus;
+import py.com.clinia.api.enums.PaymentType;
 import py.com.clinia.api.exception.BusinessException;
 import py.com.clinia.api.exception.ResourceNotFoundException;
 import py.com.clinia.api.mapper.AppointmentMapper;
 import py.com.clinia.api.repository.AppointmentRepository;
 import py.com.clinia.api.repository.PatientRepository;
+import py.com.clinia.api.repository.PaymentRepository;
 import py.com.clinia.api.repository.ProfessionalRepository;
+import py.com.clinia.api.repository.PromotionRepository;
 import py.com.clinia.api.repository.ServiceRepository;
 import py.com.clinia.api.repository.ServiceZoneRepository;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -43,19 +50,25 @@ public class AppointmentService {
     private final ProfessionalRepository professionalRepository;
     private final ServiceRepository serviceRepository;
     private final ServiceZoneRepository serviceZoneRepository;
+    private final PromotionRepository promotionRepository;
+    private final PaymentRepository paymentRepository;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
             ProfessionalRepository professionalRepository,
             ServiceRepository serviceRepository,
-            ServiceZoneRepository serviceZoneRepository
+            ServiceZoneRepository serviceZoneRepository,
+            PromotionRepository promotionRepository,
+            PaymentRepository paymentRepository
     ) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.professionalRepository = professionalRepository;
         this.serviceRepository = serviceRepository;
         this.serviceZoneRepository = serviceZoneRepository;
+        this.promotionRepository = promotionRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -92,18 +105,37 @@ public class AppointmentService {
         appointment.setEndAt(endAt);
         appointment.setDurationMinutes(built.durationMinutes());
         appointment.setSubtotal(built.subtotal());
-        appointment.setDiscountAmount(BigDecimal.ZERO);
-        appointment.setTotalAmount(built.subtotal());
-        applyDeposit(appointment, money(request.depositAmount()));
         appointment.setNotes(normalize(request.notes()));
         appointment.setAppointmentStatus(AppointmentStatus.PENDIENTE);
+
+        applyPromotion(appointment, request.promotionId(), built, startAt.toLocalDate());
+
+        BigDecimal depositAmount = AppointmentBalanceSupport.money(request.depositAmount());
+        if (depositAmount.compareTo(appointment.getTotalAmount()) > 0) {
+            throw new BusinessException("La sena no puede superar el total");
+        }
+        appointment.setDepositAmount(depositAmount);
+        AppointmentBalanceSupport.recalculate(appointment, depositAmount);
 
         for (AppointmentItem item : built.items()) {
             item.setAppointment(appointment);
             appointment.getItems().add(item);
         }
 
-        return AppointmentMapper.toResponse(appointmentRepository.save(appointment));
+        Appointment saved = appointmentRepository.save(appointment);
+
+        if (depositAmount.compareTo(BigDecimal.ZERO) > 0) {
+            Payment payment = new Payment();
+            payment.setAppointment(saved);
+            payment.setPatient(saved.getPatient());
+            payment.setAmount(depositAmount);
+            payment.setPaymentType(PaymentType.SENIA);
+            payment.setPaidAt(OffsetDateTime.now());
+            payment.setNotes("Sena inicial");
+            paymentRepository.save(payment);
+        }
+
+        return AppointmentMapper.toResponse(saved);
     }
 
     public AppointmentResponse updateStatus(Long id, AppointmentStatusRequest request) {
@@ -122,6 +154,72 @@ public class AppointmentService {
 
         appointment.setAppointmentStatus(next);
         return AppointmentMapper.toResponse(appointmentRepository.save(appointment));
+    }
+
+    private void applyPromotion(
+            Appointment appointment,
+            Long promotionId,
+            BuiltItems built,
+            LocalDate appointmentDate
+    ) {
+        if (promotionId == null) {
+            appointment.setDiscountAmount(BigDecimal.ZERO);
+            appointment.setTotalAmount(built.subtotal());
+            return;
+        }
+
+        Promotion promotion = promotionRepository.findDetailedById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promocion no encontrada"));
+        ensureActive(promotion.getStatus(), "La promocion esta inactiva");
+        if (promotion.getStartDate() != null && appointmentDate.isBefore(promotion.getStartDate())) {
+            throw new BusinessException("La promocion aun no esta vigente");
+        }
+        if (promotion.getEndDate() != null && appointmentDate.isAfter(promotion.getEndDate())) {
+            throw new BusinessException("La promocion ya no esta vigente");
+        }
+
+        ensurePromotionMatches(promotion, built.items());
+
+        BigDecimal promotionalPrice = AppointmentBalanceSupport.money(promotion.getPromotionalPrice());
+        BigDecimal discount = AppointmentBalanceSupport.money(built.subtotal().subtract(promotionalPrice));
+        if (discount.compareTo(BigDecimal.ZERO) < 0) {
+            discount = BigDecimal.ZERO;
+            promotionalPrice = built.subtotal();
+        }
+
+        appointment.setPromotion(promotion);
+        appointment.setPromotionNameSnapshot(promotion.getName());
+        appointment.setDiscountAmount(discount);
+        appointment.setTotalAmount(promotionalPrice);
+    }
+
+    private void ensurePromotionMatches(Promotion promotion, List<AppointmentItem> items) {
+        if (promotion.getItems() == null || promotion.getItems().isEmpty()) {
+            return;
+        }
+
+        Set<Long> selectedZones = new HashSet<>();
+        Set<Long> selectedServices = new HashSet<>();
+        for (AppointmentItem item : items) {
+            if (item.getServiceZone() != null) {
+                selectedZones.add(item.getServiceZone().getId());
+            }
+            if (item.getService() != null) {
+                selectedServices.add(item.getService().getId());
+            }
+        }
+
+        for (PromotionItem promoItem : promotion.getItems()) {
+            boolean matched = false;
+            if (promoItem.getServiceZone() != null) {
+                matched = selectedZones.contains(promoItem.getServiceZone().getId());
+            } else if (promoItem.getService() != null) {
+                matched = selectedServices.contains(promoItem.getService().getId());
+            }
+            if (!matched) {
+                throw new BusinessException("La promocion no coincide con los servicios seleccionados");
+            }
+        }
     }
 
     private BuiltItems buildItems(List<AppointmentItemRequest> requests) {
@@ -149,7 +247,7 @@ public class AppointmentService {
                 item.setService(zone.getService());
                 item.setNameSnapshot(zone.getName());
                 item.setDurationMinutes(zone.getDurationMinutes() * quantity);
-                item.setUnitPriceSnapshot(money(zone.getPrice()));
+                item.setUnitPriceSnapshot(AppointmentBalanceSupport.money(zone.getPrice()));
             } else {
                 py.com.clinia.api.entity.Service service = serviceRepository.findDetailedById(request.serviceId())
                         .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
@@ -157,11 +255,11 @@ public class AppointmentService {
                 item.setService(service);
                 item.setNameSnapshot(service.getName());
                 item.setDurationMinutes(service.getDurationMinutes() * quantity);
-                item.setUnitPriceSnapshot(money(service.getPrice()));
+                item.setUnitPriceSnapshot(AppointmentBalanceSupport.money(service.getPrice()));
             }
 
             BigDecimal lineTotal = item.getUnitPriceSnapshot().multiply(BigDecimal.valueOf(quantity));
-            item.setLineTotalSnapshot(money(lineTotal));
+            item.setLineTotalSnapshot(AppointmentBalanceSupport.money(lineTotal));
             durationMinutes += item.getDurationMinutes();
             subtotal = subtotal.add(item.getLineTotalSnapshot());
             items.add(item);
@@ -171,25 +269,7 @@ public class AppointmentService {
             throw new BusinessException("La duracion calculada es invalida");
         }
 
-        return new BuiltItems(items, durationMinutes, money(subtotal));
-    }
-
-    private void applyDeposit(Appointment appointment, BigDecimal depositAmount) {
-        BigDecimal total = appointment.getTotalAmount();
-        if (depositAmount.compareTo(total) > 0) {
-            throw new BusinessException("La sena no puede superar el total");
-        }
-        appointment.setDepositAmount(depositAmount);
-        appointment.setPaidAmount(depositAmount);
-        appointment.setBalanceAmount(money(total.subtract(depositAmount)));
-
-        if (depositAmount.compareTo(BigDecimal.ZERO) == 0) {
-            appointment.setPaymentStatus(PaymentStatus.PENDIENTE);
-        } else if (depositAmount.compareTo(total) == 0) {
-            appointment.setPaymentStatus(PaymentStatus.PAGADO);
-        } else {
-            appointment.setPaymentStatus(PaymentStatus.SENIA_PAGADA);
-        }
+        return new BuiltItems(items, durationMinutes, AppointmentBalanceSupport.money(subtotal));
     }
 
     private void ensureNoOverlap(Long professionalId, OffsetDateTime startAt, OffsetDateTime endAt, Long excludeId) {
@@ -234,10 +314,6 @@ public class AppointmentService {
         if (status != EntityStatus.ACTIVO) {
             throw new BusinessException(message);
         }
-    }
-
-    private BigDecimal money(BigDecimal value) {
-        return value.setScale(0, RoundingMode.HALF_UP);
     }
 
     private String normalize(String value) {
