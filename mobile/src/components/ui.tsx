@@ -61,6 +61,34 @@ export function PrimaryButton({
   );
 }
 
+export function SecondaryButton({
+  label,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  const { colors } = useThemePreference();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.button,
+        styles.secondaryButton,
+        {
+          borderColor: colors.tint,
+          opacity: disabled ? 0.5 : 1,
+          backgroundColor: colors.card,
+        },
+      ]}>
+      <Text style={[styles.buttonText, { color: colors.tint }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export function Field({
   label,
   value,
@@ -128,6 +156,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  secondaryButton: {
+    borderWidth: 1.5,
   },
   buttonText: {
     color: '#FFFFFF',

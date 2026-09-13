@@ -1,0 +1,5 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.log
+.env
+src/main/resources/application-local.properties

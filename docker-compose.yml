@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clinia-postgres
+    environment:
+      POSTGRES_DB: clinia
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - clinia_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clinia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    container_name: clinia-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/clinia
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      SERVER_ADDRESS: 0.0.0.0
+      PORT: 8080
+      OWNER_COMMISSION_PERCENTAGE: 40
+      DDL_AUTO: update
+    ports:
+      - "8080:8080"
+
+volumes:
+  clinia_pg_data:

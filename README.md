@@ -27,25 +27,31 @@ DB_PASSWORD=your_password_here
 OWNER_COMMISSION_PERCENTAGE=40
 ```
 
-Variable del mobile:
+Para no poner la clave en la linea de comandos, usa el perfil local:
+
+`backend/src/main/resources/application-local.properties` (gitignored) con `spring.datasource.password=...`
+
+Variable del mobile (ver `mobile/.env.example`):
 
 ```text
 EXPO_PUBLIC_API_URL=http://localhost:8080
 ```
 
-En un telefono fisico usa la IP local de tu PC, no `localhost`.
+En un telefono fisico usa la IP local de tu notebook, no `localhost`. Guia: [docs/local-wifi.md](./docs/local-wifi.md).
 
 ## Backend
 
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-$env:DB_PASSWORD = "tu_password_local"
+$env:SPRING_PROFILES_ACTIVE = "local"
 cd backend
 mvn spring-boot:run
 ```
 
 Health check: `http://localhost:8080/api/health`
+
+PDF de reportes: `GET /api/reports/pdf?from=...&to=...`
 
 ## Mobile
 
@@ -55,12 +61,21 @@ cd mobile
 npx expo start
 ```
 
+## Docker (opcional)
+
+```powershell
+$env:DB_PASSWORD="tu_password"
+docker compose up --build
+```
+
 ## Fases
 
-1. Base (estructura, entidades, health, shell mobile) — en progreso
-2. Pacientes y servicios
-3. Agenda y citas
-4. Promociones y pagos
-5. Paquetes y sesiones
-6. Dashboard y reportes
-7. PDF, pulido y Railway
+1. Base (estructura, entidades, health, shell mobile) — listo
+2. Pacientes y servicios — listo
+3. Agenda y citas — listo
+4. Promociones y pagos — listo
+5. Paquetes y sesiones — listo
+6. Dashboard y reportes — listo
+7. PDF, pulido, Docker y preparacion Railway — listo
+
+Railway queda documentado en [docs/railway-prep.md](./docs/railway-prep.md) y se despliega solo cuando la prueba local con WiFi este aprobada.

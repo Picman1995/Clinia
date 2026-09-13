@@ -426,6 +426,8 @@ export const api = {
     request<DashboardResponse>('/api/dashboard', { query: { date } }),
   getReport: (from: string, to: string) =>
     request<ReportResponse>('/api/reports', { query: { from, to } }),
+  getReportPdfUrl: (from: string, to: string) =>
+    buildUrl('/api/reports/pdf', { from, to }),
   listSettings: () => request<BusinessSettingResponse[]>('/api/settings'),
   getSetting: (key: string) => request<BusinessSettingResponse>(`/api/settings/${key}`),
   updateSetting: (key: string, value: string) =>

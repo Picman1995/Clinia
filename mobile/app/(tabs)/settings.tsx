@@ -101,8 +101,11 @@ export default function SettingsScreen() {
         onPress={() => router.push('/reports')}
         style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={{ color: colors.text, fontWeight: '700' }}>Reportes</Text>
-        <Muted>Ingresos y participacion</Muted>
+        <Muted>Ingresos, PDF e impresion</Muted>
       </Pressable>
+
+      <Muted>API</Muted>
+      <Text style={{ color: colors.textMuted, fontSize: 12 }}>{api.getBaseUrl()}</Text>
     </Screen>
   );
 }
