@@ -14,11 +14,10 @@ public record PatientRequest(
         @Size(max = 100)
         String lastName,
 
-        @NotBlank(message = "El documento es obligatorio")
         @Size(max = 30)
         String documentNumber,
 
-        @Size(max = 30)
+        @Size(max = 80)
         String phone,
 
         @Size(max = 150)

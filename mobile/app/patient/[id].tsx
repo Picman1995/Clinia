@@ -80,7 +80,7 @@ export default function PatientDetailScreen() {
         </View>
 
         <Card>
-          <Muted>CI: {patient.documentNumber}</Muted>
+          <Muted>CI: {patient.documentNumber || 'Sin CI'}</Muted>
           <Muted>Telefono: {patient.phone || '-'}</Muted>
           <Muted>Email: {patient.email || '-'}</Muted>
           <Muted>Nacimiento: {patient.birthDate || '-'}</Muted>

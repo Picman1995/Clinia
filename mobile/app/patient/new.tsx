@@ -38,7 +38,7 @@ export default function PatientFormScreen() {
         setForm({
           firstName: patient.firstName,
           lastName: patient.lastName,
-          documentNumber: patient.documentNumber,
+          documentNumber: patient.documentNumber ?? '',
           phone: patient.phone ?? '',
           email: patient.email ?? '',
           birthDate: patient.birthDate ?? '',
@@ -55,15 +55,15 @@ export default function PatientFormScreen() {
   };
 
   const save = async () => {
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.documentNumber.trim()) {
-      Alert.alert('Datos incompletos', 'Nombre, apellido y documento son obligatorios');
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      Alert.alert('Datos incompletos', 'Nombre y apellido son obligatorios');
       return;
     }
 
     const payload: PatientRequest = {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
-      documentNumber: form.documentNumber.trim(),
+      documentNumber: form.documentNumber?.trim() || undefined,
       phone: form.phone?.trim() || undefined,
       email: form.email?.trim() || undefined,
       birthDate: form.birthDate?.trim() || undefined,
@@ -103,10 +103,11 @@ export default function PatientFormScreen() {
         <Field label="Nombre" value={form.firstName} onChangeText={(v) => update('firstName', v)} />
         <Field label="Apellido" value={form.lastName} onChangeText={(v) => update('lastName', v)} />
         <Field
-          label="Documento / CI"
-          value={form.documentNumber}
+          label="Documento / CI (opcional)"
+          value={form.documentNumber ?? ''}
           onChangeText={(v) => update('documentNumber', v)}
         />
+        <Muted>Si no hay CI, el paciente se busca por nombre</Muted>
         <Field
           label="Telefono"
           value={form.phone ?? ''}

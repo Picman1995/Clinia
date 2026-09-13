@@ -30,7 +30,7 @@ public final class PatientMapper {
     public static void apply(Patient patient, PatientRequest request) {
         patient.setFirstName(request.firstName().trim());
         patient.setLastName(request.lastName().trim());
-        patient.setDocumentNumber(request.documentNumber().trim());
+        patient.setDocumentNumber(normalize(request.documentNumber()));
         patient.setPhone(normalize(request.phone()));
         patient.setEmail(normalize(request.email()));
         patient.setBirthDate(request.birthDate());

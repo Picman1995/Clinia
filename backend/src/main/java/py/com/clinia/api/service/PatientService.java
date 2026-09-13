@@ -37,7 +37,8 @@ public class PatientService {
     }
 
     public PatientResponse create(PatientRequest request) {
-        if (patientRepository.existsByDocumentNumberIgnoreCase(request.documentNumber().trim())) {
+        String document = normalizeDocument(request.documentNumber());
+        if (document != null && patientRepository.existsByDocumentNumberIgnoreCase(document)) {
             throw new BusinessException("Ya existe un paciente con ese documento");
         }
         Patient patient = PatientMapper.toEntity(request);
@@ -46,8 +47,8 @@ public class PatientService {
 
     public PatientResponse update(Long id, PatientRequest request) {
         Patient patient = findActiveOrAny(id);
-        String document = request.documentNumber().trim();
-        if (patientRepository.existsByDocumentNumberIgnoreCaseAndIdNot(document, id)) {
+        String document = normalizeDocument(request.documentNumber());
+        if (document != null && patientRepository.existsByDocumentNumberIgnoreCaseAndIdNot(document, id)) {
             throw new BusinessException("Ya existe un paciente con ese documento");
         }
         PatientMapper.apply(patient, request);
@@ -69,5 +70,13 @@ public class PatientService {
     private Patient findActiveOrAny(Long id) {
         return patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente no encontrado"));
+    }
+
+    private String normalizeDocument(String documentNumber) {
+        if (documentNumber == null) {
+            return null;
+        }
+        String trimmed = documentNumber.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

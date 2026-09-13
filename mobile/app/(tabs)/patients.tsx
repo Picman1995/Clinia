@@ -45,7 +45,7 @@ export default function PatientsScreen() {
   return (
     <Screen>
       <Title>Pacientes</Title>
-      <Muted>Busca por nombre, apellido, CI o telefono</Muted>
+      <Muted>Busca por nombre o apellido</Muted>
 
       <TextInput
         value={query}
@@ -95,8 +95,14 @@ export default function PatientsScreen() {
                   </Text>
                   <Badge label={item.status} tone={item.status === 'ACTIVO' ? 'success' : 'danger'} />
                 </View>
-                <Muted>CI: {item.documentNumber}</Muted>
-                {item.phone ? <Muted>Tel: {item.phone}</Muted> : null}
+                <Muted>
+                  {item.phone
+                    ? `Tel: ${item.phone}`
+                    : item.documentNumber
+                      ? `CI: ${item.documentNumber}`
+                      : 'Sin telefono ni CI'}
+                </Muted>
+                {item.phone && item.documentNumber ? <Muted>CI: {item.documentNumber}</Muted> : null}
               </Card>
             </Pressable>
           )}

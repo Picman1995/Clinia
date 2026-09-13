@@ -138,7 +138,7 @@ export default function AppointmentDetailScreen() {
             min
           </Muted>
           <Muted>Profesional: {appointment.professionalName}</Muted>
-          <Muted>CI: {appointment.patientDocument}</Muted>
+          <Muted>CI: {appointment.patientDocument || 'Sin CI'}</Muted>
           <Muted>Pago: {appointment.paymentStatus}</Muted>
           {appointment.promotionNameSnapshot ? (
             <Muted>Promo: {appointment.promotionNameSnapshot}</Muted>

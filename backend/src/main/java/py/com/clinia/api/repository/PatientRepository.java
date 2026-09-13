@@ -24,7 +24,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
                 :q IS NULL OR :q = '' OR
                 LOWER(p.firstName) LIKE LOWER(CONCAT('%', :q, '%')) OR
                 LOWER(p.lastName) LIKE LOWER(CONCAT('%', :q, '%')) OR
-                LOWER(p.documentNumber) LIKE LOWER(CONCAT('%', :q, '%')) OR
+                LOWER(CONCAT(p.firstName, ' ', p.lastName)) LIKE LOWER(CONCAT('%', :q, '%')) OR
+                LOWER(CONCAT(p.lastName, ' ', p.firstName)) LIKE LOWER(CONCAT('%', :q, '%')) OR
+                LOWER(COALESCE(p.documentNumber, '')) LIKE LOWER(CONCAT('%', :q, '%')) OR
                 LOWER(COALESCE(p.phone, '')) LIKE LOWER(CONCAT('%', :q, '%'))
               )
             ORDER BY p.lastName ASC, p.firstName ASC

@@ -17,10 +17,10 @@ public class Patient extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String lastName;
 
-    @Column(nullable = false, unique = true, length = 30)
+    @Column(unique = true, length = 30)
     private String documentNumber;
 
-    @Column(length = 30)
+    @Column(length = 80)
     private String phone;
 
     @Column(length = 150)

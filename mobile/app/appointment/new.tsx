@@ -76,7 +76,7 @@ export default function NewAppointmentScreen() {
     }
     return patients
       .filter((patient) => {
-        const haystack = `${patient.firstName} ${patient.lastName} ${patient.documentNumber} ${patient.phone ?? ''}`.toLowerCase();
+        const haystack = `${patient.firstName} ${patient.lastName} ${patient.documentNumber ?? ''} ${patient.phone ?? ''}`.toLowerCase();
         return haystack.includes(q);
       })
       .slice(0, 8);
@@ -209,7 +209,7 @@ export default function NewAppointmentScreen() {
           label="Buscar paciente"
           value={patientQuery}
           onChangeText={setPatientQuery}
-          placeholder="Nombre, CI o telefono"
+          placeholder="Nombre o apellido"
         />
 
         {selectedPatient ? (
@@ -217,7 +217,13 @@ export default function NewAppointmentScreen() {
             <Text style={[styles.selected, { color: colors.text }]}>
               {selectedPatient.firstName} {selectedPatient.lastName}
             </Text>
-            <Muted>CI: {selectedPatient.documentNumber}</Muted>
+            <Muted>
+              {selectedPatient.phone
+                ? `Tel: ${selectedPatient.phone}`
+                : selectedPatient.documentNumber
+                  ? `CI: ${selectedPatient.documentNumber}`
+                  : 'Sin telefono ni CI'}
+            </Muted>
             <Pressable onPress={() => setSelectedPatient(null)}>
               <Text style={{ color: colors.danger, fontWeight: '600' }}>Quitar</Text>
             </Pressable>
@@ -235,7 +241,13 @@ export default function NewAppointmentScreen() {
                   <Text style={{ color: colors.text, fontWeight: '700' }}>
                     {item.lastName}, {item.firstName}
                   </Text>
-                  <Muted>CI: {item.documentNumber}</Muted>
+                  <Muted>
+                    {item.phone
+                      ? `Tel: ${item.phone}`
+                      : item.documentNumber
+                        ? `CI: ${item.documentNumber}`
+                        : 'Sin telefono ni CI'}
+                  </Muted>
                 </Card>
               </Pressable>
             )}

@@ -35,6 +35,11 @@ mobile/*.jks
 mobile/*.keystore
 mobile/.eas/
 
+# OCR service
+ocr/node_modules/
+ocr/.cache/
+ocr/tmp/
+
 # Logs
 *.log
 npm-debug.log*

@@ -23,7 +23,7 @@ export type PatientResponse = {
   id: number;
   firstName: string;
   lastName: string;
-  documentNumber: string;
+  documentNumber?: string | null;
   phone?: string | null;
   email?: string | null;
   birthDate?: string | null;
@@ -36,7 +36,7 @@ export type PatientResponse = {
 export type PatientRequest = {
   firstName: string;
   lastName: string;
-  documentNumber: string;
+  documentNumber?: string;
   phone?: string;
   email?: string;
   birthDate?: string;
@@ -136,7 +136,7 @@ export type AppointmentResponse = {
   id: number;
   patientId: number;
   patientName: string;
-  patientDocument: string;
+  patientDocument?: string | null;
   professionalId: number;
   professionalName: string;
   startAt: string;
