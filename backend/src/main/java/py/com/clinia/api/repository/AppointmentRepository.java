@@ -52,4 +52,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("excludeId") Long excludeId,
             @Param("blockingStatuses") List<AppointmentStatus> blockingStatuses
     );
+
+    @Query("""
+            SELECT DISTINCT a FROM Appointment a
+            JOIN FETCH a.patient
+            JOIN FETCH a.professional
+            LEFT JOIN FETCH a.items
+            WHERE a.patient.id = :patientId
+            ORDER BY a.startAt DESC
+            """)
+    List<Appointment> findByPatientId(@Param("patientId") Long patientId);
 }

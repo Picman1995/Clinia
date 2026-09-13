@@ -52,6 +52,7 @@ public class AppointmentService {
     private final ServiceZoneRepository serviceZoneRepository;
     private final PromotionRepository promotionRepository;
     private final PaymentRepository paymentRepository;
+    private final TreatmentPackageService treatmentPackageService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
@@ -60,7 +61,8 @@ public class AppointmentService {
             ServiceRepository serviceRepository,
             ServiceZoneRepository serviceZoneRepository,
             PromotionRepository promotionRepository,
-            PaymentRepository paymentRepository
+            PaymentRepository paymentRepository,
+            TreatmentPackageService treatmentPackageService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
@@ -69,6 +71,7 @@ public class AppointmentService {
         this.serviceZoneRepository = serviceZoneRepository;
         this.promotionRepository = promotionRepository;
         this.paymentRepository = paymentRepository;
+        this.treatmentPackageService = treatmentPackageService;
     }
 
     @Transactional(readOnly = true)
@@ -153,7 +156,17 @@ public class AppointmentService {
         }
 
         appointment.setAppointmentStatus(next);
-        return AppointmentMapper.toResponse(appointmentRepository.save(appointment));
+        Appointment saved = appointmentRepository.save(appointment);
+
+        if (next == AppointmentStatus.ATENDIDA && request.treatmentPackageId() != null) {
+            treatmentPackageService.completeNextPending(
+                    request.treatmentPackageId(),
+                    saved.getId(),
+                    request.sessionNotes()
+            );
+        }
+
+        return AppointmentMapper.toResponse(saved);
     }
 
     private void applyPromotion(

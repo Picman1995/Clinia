@@ -11,10 +11,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import py.com.clinia.api.dto.PatientHistoryResponse;
 import py.com.clinia.api.dto.PatientRequest;
 import py.com.clinia.api.dto.PatientResponse;
 import py.com.clinia.api.enums.EntityStatus;
 import py.com.clinia.api.service.PatientService;
+import py.com.clinia.api.service.TreatmentPackageService;
 
 import java.util.List;
 
@@ -23,9 +25,11 @@ import java.util.List;
 public class PatientController {
 
     private final PatientService patientService;
+    private final TreatmentPackageService treatmentPackageService;
 
-    public PatientController(PatientService patientService) {
+    public PatientController(PatientService patientService, TreatmentPackageService treatmentPackageService) {
         this.patientService = patientService;
+        this.treatmentPackageService = treatmentPackageService;
     }
 
     @GetMapping
@@ -39,6 +43,11 @@ public class PatientController {
     @GetMapping("/{id}")
     public PatientResponse getById(@PathVariable Long id) {
         return patientService.getById(id);
+    }
+
+    @GetMapping("/{id}/history")
+    public PatientHistoryResponse history(@PathVariable Long id) {
+        return treatmentPackageService.history(id);
     }
 
     @PostMapping

@@ -207,6 +207,51 @@ export type PaymentCreateRequest = {
   notes?: string;
 };
 
+export type SessionStatus = 'PENDIENTE' | 'REALIZADA' | 'CANCELADA';
+
+export type TreatmentSessionResponse = {
+  id: number;
+  sessionNumber: number;
+  sessionStatus: SessionStatus;
+  performedAt?: string | null;
+  appointmentId?: number | null;
+  notes?: string | null;
+};
+
+export type TreatmentPackageResponse = {
+  id: number;
+  patientId: number;
+  patientName: string;
+  serviceId?: number | null;
+  serviceName?: string | null;
+  name: string;
+  totalSessions: number;
+  completedSessions: number;
+  remainingSessions: number;
+  totalPrice: number;
+  notes?: string | null;
+  status: EntityStatus;
+  sessions: TreatmentSessionResponse[];
+};
+
+export type TreatmentPackageRequest = {
+  patientId: number;
+  serviceId?: number;
+  name: string;
+  totalSessions: number;
+  totalPrice: number;
+  notes?: string;
+};
+
+export type PatientHistoryResponse = {
+  patientId: number;
+  patientName: string;
+  packages: TreatmentPackageResponse[];
+  upcomingAppointments: AppointmentResponse[];
+  recentAppointments: AppointmentResponse[];
+  recentPayments: PaymentResponse[];
+};
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -295,10 +340,18 @@ export const api = {
   getAppointment: (id: number) => request<AppointmentResponse>(`/api/appointments/${id}`),
   createAppointment: (body: AppointmentRequest) =>
     request<AppointmentResponse>('/api/appointments', { method: 'POST', body }),
-  updateAppointmentStatus: (id: number, appointmentStatus: AppointmentStatus) =>
+  updateAppointmentStatus: (
+    id: number,
+    appointmentStatus: AppointmentStatus,
+    options?: { treatmentPackageId?: number; sessionNotes?: string }
+  ) =>
     request<AppointmentResponse>(`/api/appointments/${id}/status`, {
       method: 'PUT',
-      body: { appointmentStatus },
+      body: {
+        appointmentStatus,
+        treatmentPackageId: options?.treatmentPackageId,
+        sessionNotes: options?.sessionNotes,
+      },
     }),
 
   listPromotions: (params?: { status?: EntityStatus; onlyValidToday?: boolean }) =>
@@ -315,6 +368,23 @@ export const api = {
     request<PaymentResponse[]>('/api/payments', { query: params }),
   createPayment: (body: PaymentCreateRequest) =>
     request<PaymentResponse>('/api/payments', { method: 'POST', body }),
+
+  getPatientHistory: (id: number) => request<PatientHistoryResponse>(`/api/patients/${id}/history`),
+  listTreatmentPackages: (patientId: number, status?: EntityStatus) =>
+    request<TreatmentPackageResponse[]>('/api/treatment-packages', { query: { patientId, status } }),
+  getTreatmentPackage: (id: number) =>
+    request<TreatmentPackageResponse>(`/api/treatment-packages/${id}`),
+  createTreatmentPackage: (body: TreatmentPackageRequest) =>
+    request<TreatmentPackageResponse>('/api/treatment-packages', { method: 'POST', body }),
+  deactivateTreatmentPackage: (id: number) =>
+    request<TreatmentPackageResponse>(`/api/treatment-packages/${id}/deactivate`, { method: 'POST' }),
+  completeTreatmentSession: (id: number, body?: { appointmentId?: number; notes?: string }) =>
+    request<TreatmentSessionResponse>(`/api/treatment-sessions/${id}/complete`, {
+      method: 'POST',
+      body: body ?? {},
+    }),
+  cancelTreatmentSession: (id: number) =>
+    request<TreatmentSessionResponse>(`/api/treatment-sessions/${id}/cancel`, { method: 'POST' }),
 };
 
 export function formatGs(amount: number | string) {
