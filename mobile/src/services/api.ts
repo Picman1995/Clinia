@@ -361,16 +361,26 @@ export const api = {
     type?: ServiceCategoryType;
     status?: EntityStatus;
   }) => request<ServiceResponse[]>('/api/services', { query: params }),
+  getService: (id: number) => request<ServiceResponse>(`/api/services/${id}`),
   createService: (body: ServiceRequest) =>
     request<ServiceResponse>('/api/services', { method: 'POST', body }),
   updateService: (id: number, body: ServiceRequest) =>
     request<ServiceResponse>(`/api/services/${id}`, { method: 'PUT', body }),
+  deactivateService: (id: number) =>
+    request<ServiceResponse>(`/api/services/${id}/deactivate`, { method: 'POST' }),
+  activateService: (id: number) =>
+    request<ServiceResponse>(`/api/services/${id}/activate`, { method: 'POST' }),
   searchZones: (serviceId?: number, status?: EntityStatus) =>
     request<ServiceZoneResponse[]>('/api/service-zones', { query: { serviceId, status } }),
+  getZone: (id: number) => request<ServiceZoneResponse>(`/api/service-zones/${id}`),
   createZone: (body: ServiceZoneRequest) =>
     request<ServiceZoneResponse>('/api/service-zones', { method: 'POST', body }),
   updateZone: (id: number, body: ServiceZoneRequest) =>
     request<ServiceZoneResponse>(`/api/service-zones/${id}`, { method: 'PUT', body }),
+  deactivateZone: (id: number) =>
+    request<ServiceZoneResponse>(`/api/service-zones/${id}/deactivate`, { method: 'POST' }),
+  activateZone: (id: number) =>
+    request<ServiceZoneResponse>(`/api/service-zones/${id}/activate`, { method: 'POST' }),
 
   listAppointments: (from: string, to: string, professionalId?: number) =>
     request<AppointmentResponse[]>('/api/appointments', { query: { from, to, professionalId } }),

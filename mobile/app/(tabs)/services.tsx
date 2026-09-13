@@ -1,12 +1,13 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Card, Muted, Screen, Title } from '@/src/components/ui';
+import { Badge, Card, Muted, PrimaryButton, Screen, Title } from '@/src/components/ui';
 import { api, formatGs, ServiceResponse, ServiceZoneResponse } from '@/src/services/api';
 import { useThemePreference } from '@/src/theme/ThemeContext';
 
 export default function ServicesScreen() {
+  const router = useRouter();
   const { colors } = useThemePreference();
   const [services, setServices] = useState<ServiceResponse[]>([]);
   const [zones, setZones] = useState<ServiceZoneResponse[]>([]);
@@ -58,7 +59,12 @@ export default function ServicesScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <Title>Servicios</Title>
-        <Muted>Catalogo de depilacion y estetica (precios y duracion)</Muted>
+        <Muted>Catalogo vigente para agendar. Para cambiar precios toca Editar catalogo.</Muted>
+
+        <PrimaryButton
+          label="Editar catalogo"
+          onPress={() => router.push('/catalog' as Href)}
+        />
 
         {loading ? (
           <ActivityIndicator color={colors.tint} />
@@ -96,17 +102,25 @@ export default function ServicesScreen() {
             </View>
 
             {selectedService ? (
-              <Card>
-                <View style={styles.row}>
-                  <Text style={[styles.serviceName, { color: colors.text }]}>{selectedService.name}</Text>
-                  <Badge label={selectedService.categoryType} />
-                </View>
-                <Muted>{selectedService.categoryName}</Muted>
-                <Muted>
-                  {formatGs(selectedService.price)} · {selectedService.durationMinutes} min
-                </Muted>
-                {selectedService.description ? <Muted>{selectedService.description}</Muted> : null}
-              </Card>
+              <Pressable
+                onPress={() => router.push(`/catalog/service/${selectedService.id}` as Href)}>
+                <Card>
+                  <View style={styles.row}>
+                    <Text style={[styles.serviceName, { color: colors.text }]}>
+                      {selectedService.name}
+                    </Text>
+                    <Badge label={selectedService.categoryType} />
+                  </View>
+                  <Muted>{selectedService.categoryName}</Muted>
+                  <Muted>
+                    {formatGs(selectedService.price)} · {selectedService.durationMinutes} min
+                  </Muted>
+                  {selectedService.description ? <Muted>{selectedService.description}</Muted> : null}
+                  <Text style={{ color: colors.tint, fontWeight: '700', marginTop: 4 }}>
+                    Tocar para editar
+                  </Text>
+                </Card>
+              </Pressable>
             ) : null}
 
             <Text style={[styles.section, { color: colors.text }]}>
@@ -118,13 +132,19 @@ export default function ServicesScreen() {
               </Muted>
             ) : (
               visibleZones.map((item) => (
-                <Card key={item.id}>
-                  <View style={styles.row}>
-                    <Text style={[styles.zoneName, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={{ color: colors.tint, fontWeight: '700' }}>{formatGs(item.price)}</Text>
-                  </View>
-                  <Muted>{item.durationMinutes} min</Muted>
-                </Card>
+                <Pressable
+                  key={item.id}
+                  onPress={() => router.push(`/catalog/zone/${item.id}` as Href)}>
+                  <Card>
+                    <View style={styles.row}>
+                      <Text style={[styles.zoneName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={{ color: colors.tint, fontWeight: '700' }}>
+                        {formatGs(item.price)}
+                      </Text>
+                    </View>
+                    <Muted>{item.durationMinutes} min · Tocar para editar</Muted>
+                  </Card>
+                </Pressable>
               ))
             )}
           </>

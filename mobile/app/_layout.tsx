@@ -46,6 +46,10 @@ function RootLayoutNav() {
         <Stack.Screen name="promotion/index" options={{ title: 'Promociones' }} />
         <Stack.Screen name="promotion/new" options={{ title: 'Nueva promocion' }} />
         <Stack.Screen name="promotion/[id]" options={{ title: 'Promocion' }} />
+        <Stack.Screen name="catalog/index" options={{ title: 'Editar catalogo' }} />
+        <Stack.Screen name="catalog/service/[id]" options={{ title: 'Editar servicio' }} />
+        <Stack.Screen name="catalog/zone/[id]" options={{ title: 'Editar zona' }} />
+        <Stack.Screen name="catalog/zone/new" options={{ title: 'Nueva zona' }} />
         <Stack.Screen name="package/new" options={{ title: 'Nuevo paquete' }} />
         <Stack.Screen name="package/[id]" options={{ title: 'Paquete' }} />
         <Stack.Screen name="reports" options={{ title: 'Reportes' }} />

@@ -93,6 +93,12 @@ export default function SettingsScreen() {
 
       <Muted>Modulos</Muted>
       <Pressable
+        onPress={() => router.push('/catalog' as Href)}
+        style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={{ color: colors.text, fontWeight: '700' }}>Editar catalogo</Text>
+        <Muted>Precios, duracion y zonas de servicios</Muted>
+      </Pressable>
+      <Pressable
         onPress={() => router.push('/promotion')}
         style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={{ color: colors.text, fontWeight: '700' }}>Promociones</Text>
