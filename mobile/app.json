@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Clinia",
+    "slug": "clinia",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "clinia",
+    "userInterfaceStyle": "automatic",
+    "owner": "picman",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "py.com.clinia.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F766E",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "package": "py.com.clinia.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0F766E"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "898e06f3-351f-44ed-8b34-50f3cf1caead"
+      },
+      "router": {}
+    }
+  }
+}
