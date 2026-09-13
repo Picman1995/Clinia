@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge, Card, Muted, Screen, Title } from '@/src/components/ui';
 import { api, formatGs, ServiceResponse, ServiceZoneResponse } from '@/src/services/api';
@@ -23,16 +23,19 @@ export default function ServicesScreen() {
       ]);
       setServices(serviceData);
       setZones(zoneData);
-      if (!selectedServiceId && serviceData.length > 0) {
+      setSelectedServiceId((current) => {
+        if (current && serviceData.some((item) => item.id === current)) {
+          return current;
+        }
         const depilation = serviceData.find((item) => item.categoryType === 'DEPILACION');
-        setSelectedServiceId(depilation?.id ?? serviceData[0].id);
-      }
+        return depilation?.id ?? serviceData[0]?.id ?? null;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cargar el catalogo');
     } finally {
       setLoading(false);
     }
-  }, [selectedServiceId]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,89 +44,106 @@ export default function ServicesScreen() {
     }, [load])
   );
 
-  const visibleZones = zones.filter((zone) => zone.serviceId === selectedServiceId);
+  const selectedService = useMemo(
+    () => services.find((item) => item.id === selectedServiceId) ?? null,
+    [services, selectedServiceId]
+  );
+
+  const visibleZones = useMemo(
+    () => zones.filter((zone) => zone.serviceId === selectedServiceId),
+    [zones, selectedServiceId]
+  );
 
   return (
     <Screen>
-      <Title>Servicios</Title>
-      <Muted>Catalogo de depilacion y estetica</Muted>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Title>Servicios</Title>
+        <Muted>Catalogo de depilacion y estetica (precios y duracion)</Muted>
 
-      {loading ? (
-        <ActivityIndicator color={colors.tint} />
-      ) : error ? (
-        <Muted>{error}</Muted>
-      ) : (
-        <>
-          <FlatList
-            data={services}
-            keyExtractor={(item) => String(item.id)}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8 }}
-            renderItem={({ item }) => {
-              const selected = item.id === selectedServiceId;
-              return (
-                <Pressable
-                  onPress={() => setSelectedServiceId(item.id)}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: selected ? colors.tint : colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}>
-                  <Text style={{ color: selected ? '#FFFFFF' : colors.text, fontWeight: '600' }}>
-                    {item.name}
-                  </Text>
-                </Pressable>
-              );
-            }}
-          />
-
+        {loading ? (
+          <ActivityIndicator color={colors.tint} />
+        ) : error ? (
           <Card>
-            {services
-              .filter((item) => item.id === selectedServiceId)
-              .map((item) => (
-                <View key={item.id} style={{ gap: 6 }}>
-                  <View style={styles.row}>
-                    <Text style={[styles.serviceName, { color: colors.text }]}>{item.name}</Text>
-                    <Badge label={item.categoryType} />
-                  </View>
-                  <Muted>{item.categoryName}</Muted>
-                  <Muted>
-                    {formatGs(item.price)} · {item.durationMinutes} min
-                  </Muted>
-                  {item.description ? <Muted>{item.description}</Muted> : null}
-                </View>
-              ))}
+            <Muted>{error}</Muted>
+            <Muted>Revisa en Mas que la URL del API sea alcanzable desde el telefono.</Muted>
           </Card>
+        ) : services.length === 0 ? (
+          <Card>
+            <Muted>No hay servicios activos en el catalogo.</Muted>
+          </Card>
+        ) : (
+          <>
+            <View style={styles.wrap}>
+              {services.map((item) => {
+                const selected = item.id === selectedServiceId;
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => setSelectedServiceId(item.id)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: selected ? colors.tint : colors.card,
+                        borderColor: colors.border,
+                      },
+                    ]}>
+                    <Text style={{ color: selected ? '#FFFFFF' : colors.text, fontWeight: '600' }}>
+                      {item.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-          <Text style={[styles.section, { color: colors.text }]}>Zonas</Text>
-          {visibleZones.length === 0 ? (
-            <Muted>Este servicio no tiene zonas configuradas</Muted>
-          ) : (
-            <FlatList
-              data={visibleZones}
-              keyExtractor={(item) => String(item.id)}
-              contentContainerStyle={{ gap: 10, paddingBottom: 30 }}
-              renderItem={({ item }) => (
-                <Card>
+            {selectedService ? (
+              <Card>
+                <View style={styles.row}>
+                  <Text style={[styles.serviceName, { color: colors.text }]}>{selectedService.name}</Text>
+                  <Badge label={selectedService.categoryType} />
+                </View>
+                <Muted>{selectedService.categoryName}</Muted>
+                <Muted>
+                  {formatGs(selectedService.price)} · {selectedService.durationMinutes} min
+                </Muted>
+                {selectedService.description ? <Muted>{selectedService.description}</Muted> : null}
+              </Card>
+            ) : null}
+
+            <Text style={[styles.section, { color: colors.text }]}>
+              {visibleZones.length > 0 ? 'Zonas y precios' : 'Detalle'}
+            </Text>
+            {visibleZones.length === 0 ? (
+              <Muted>
+                Este servicio no tiene zonas: el precio de arriba es el que se usa al agendar.
+              </Muted>
+            ) : (
+              visibleZones.map((item) => (
+                <Card key={item.id}>
                   <View style={styles.row}>
                     <Text style={[styles.zoneName, { color: colors.text }]}>{item.name}</Text>
                     <Text style={{ color: colors.tint, fontWeight: '700' }}>{formatGs(item.price)}</Text>
                   </View>
                   <Muted>{item.durationMinutes} min</Muted>
                 </Card>
-              )}
-            />
-          )}
-        </>
-      )}
+              ))
+            )}
+          </>
+        )}
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: 10,
+    paddingBottom: 40,
+  },
+  wrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   chip: {
     borderWidth: 1,
     borderRadius: 999,

@@ -36,8 +36,16 @@ type SelectedItem = {
 export default function NewAppointmentScreen() {
   const router = useRouter();
   const { colors } = useThemePreference();
-  const params = useLocalSearchParams<{ patientId?: string }>();
+  const params = useLocalSearchParams<{
+    patientId?: string;
+    fromAppointmentId?: string;
+    transferPaid?: string;
+  }>();
   const preselectedPatientId = params.patientId ? Number(params.patientId) : null;
+  const fromAppointmentId = params.fromAppointmentId ? Number(params.fromAppointmentId) : null;
+  const transferPaid = params.transferPaid ? Number(params.transferPaid) : 0;
+  const isRescheduleTransfer =
+    Number.isFinite(fromAppointmentId) && fromAppointmentId !== null && transferPaid > 0;
 
   const [patients, setPatients] = useState<PatientResponse[]>([]);
   const [services, setServices] = useState<ServiceResponse[]>([]);
@@ -49,8 +57,10 @@ export default function NewAppointmentScreen() {
   const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(null);
   const [date, setDate] = useState(todayPy());
   const [time, setTime] = useState('09:00');
-  const [deposit, setDeposit] = useState('0');
-  const [notes, setNotes] = useState('');
+  const [deposit, setDeposit] = useState(isRescheduleTransfer ? String(Math.round(transferPaid)) : '0');
+  const [notes, setNotes] = useState(
+    isRescheduleTransfer ? `Reagendado desde cita #${fromAppointmentId}` : ''
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -170,6 +180,13 @@ export default function NewAppointmentScreen() {
       Alert.alert('Sena invalida', 'La sena no puede superar el total');
       return;
     }
+    if (isRescheduleTransfer && totals.depositAmount > transferPaid) {
+      Alert.alert(
+        'Sena invalida',
+        `Al reagendar no podes transferir mas de lo ya cobrado (${formatGs(transferPaid)})`
+      );
+      return;
+    }
 
     setSaving(true);
     try {
@@ -184,6 +201,7 @@ export default function NewAppointmentScreen() {
           serviceZoneId: item.serviceZoneId,
           quantity: 1,
         })),
+        rescheduleFromAppointmentId: isRescheduleTransfer ? fromAppointmentId ?? undefined : undefined,
       });
       router.replace('/(tabs)/agenda');
     } catch (err) {
@@ -208,8 +226,16 @@ export default function NewAppointmentScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Title>Nueva reserva</Title>
+        <Title>{isRescheduleTransfer ? 'Reagendar reserva' : 'Nueva reserva'}</Title>
         <Muted>Paciente, servicios, promocion, horario y sena</Muted>
+        {isRescheduleTransfer ? (
+          <Card>
+            <Muted>
+              Seña ya cobrada ({formatGs(transferPaid)}) se aplica a esta cita sin generar un cobro nuevo.
+              Podes ajustar el monto si el total de la nueva cita es menor.
+            </Muted>
+          </Card>
+        ) : null}
 
         <Field
           label="Buscar paciente"
@@ -358,7 +384,7 @@ export default function NewAppointmentScreen() {
         <Field label="Fecha (AAAA-MM-DD)" value={date} onChangeText={setDate} />
         <Field label="Hora (HH:MM)" value={time} onChangeText={setTime} placeholder="09:00" />
         <Field
-          label="Sena (Gs.)"
+          label={isRescheduleTransfer ? 'Sena transferida (Gs.)' : 'Sena (Gs.)'}
           value={deposit}
           onChangeText={setDeposit}
           keyboardType="numeric"
@@ -370,13 +396,20 @@ export default function NewAppointmentScreen() {
           <Muted>Subtotal: {formatGs(totals.subtotal)}</Muted>
           <Muted>Descuento: {formatGs(totals.discountAmount)}</Muted>
           <Muted>Total: {formatGs(totals.totalAmount)}</Muted>
-          <Muted>Sena: {formatGs(totals.depositAmount)}</Muted>
+          <Muted>
+            {isRescheduleTransfer ? 'Sena transferida: ' : 'Sena: '}
+            {formatGs(totals.depositAmount)}
+          </Muted>
           <Text style={{ color: colors.text, fontWeight: '700' }}>
             Saldo: {formatGs(totals.balanceAmount)}
           </Text>
         </Card>
 
-        <PrimaryButton label={saving ? 'Guardando...' : 'Crear reserva'} onPress={save} disabled={saving} />
+        <PrimaryButton
+          label={saving ? 'Guardando...' : isRescheduleTransfer ? 'Confirmar reagendo' : 'Crear reserva'}
+          onPress={save}
+          disabled={saving}
+        />
       </ScrollView>
     </Screen>
   );

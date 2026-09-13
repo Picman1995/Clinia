@@ -30,6 +30,8 @@ public record AppointmentRequest(
 
         @NotEmpty(message = "Debe seleccionar al menos un servicio o zona")
         @Valid
-        List<AppointmentItemRequest> items
+        List<AppointmentItemRequest> items,
+
+        Long rescheduleFromAppointmentId
 ) {
 }

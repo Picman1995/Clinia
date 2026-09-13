@@ -120,9 +120,12 @@ export default function AppointmentDetailScreen() {
     if (!appointment) {
       return;
     }
+    const paid = Number(appointment.paidAmount) || 0;
     Alert.alert(
       'Reagendar cita',
-      'Se marcara esta cita como CANCELADA y podras crear una nueva fecha para el mismo paciente. La seña ya cobrada queda en el historial de pagos de esta cita.',
+      paid > 0
+        ? `Se cancelara esta cita y se abrira una nueva. La seña ya cobrada (${formatGs(paid)}) se traspasara a la nueva cita sin cobrarla de nuevo.`
+        : 'Se cancelara esta cita y podras crear una nueva fecha para el mismo paciente.',
       [
         { text: 'Volver', style: 'cancel' },
         {
@@ -133,7 +136,10 @@ export default function AppointmentDetailScreen() {
               if (appointment.appointmentStatus !== 'CANCELADA') {
                 await api.updateAppointmentStatus(appointment.id, 'CANCELADA');
               }
-              router.push(`/appointment/new?patientId=${appointment.patientId}` as Href);
+              const transfer = paid > 0 ? `&fromAppointmentId=${appointment.id}&transferPaid=${paid}` : '';
+              router.push(
+                `/appointment/new?patientId=${appointment.patientId}${transfer}` as Href
+              );
             } catch (err) {
               Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo reagendar');
             } finally {

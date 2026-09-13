@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Field, Muted, PrimaryButton, Screen, Title } from '@/src/components/ui';
-import { api, ServiceResponse } from '@/src/services/api';
+import { Card, Field, Muted, PrimaryButton, Screen, Title } from '@/src/components/ui';
+import { api, formatGs, ServiceResponse } from '@/src/services/api';
 import { useThemePreference } from '@/src/theme/ThemeContext';
 
 export default function NewPackageScreen() {
@@ -28,6 +28,21 @@ export default function NewPackageScreen() {
       .catch((err) => Alert.alert('Error', err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const selectService = (service: ServiceResponse) => {
+    const selected = serviceId === service.id;
+    if (selected) {
+      setServiceId(null);
+      return;
+    }
+    setServiceId(service.id);
+    if (!name.trim()) {
+      setName(`Pack ${service.name}`);
+    }
+    if (!totalPrice.trim()) {
+      setTotalPrice(String(Math.round(Number(service.price) * Number(totalSessions || '6'))));
+    }
+  };
 
   const save = async () => {
     if (!Number.isFinite(parsedPatientId)) {
@@ -79,34 +94,60 @@ export default function NewPackageScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <Title>Nuevo paquete</Title>
-        <Muted>Define sesiones contratadas y precio total</Muted>
+        <Muted>
+          Esto contrata un pack de sesiones para el paciente (ej. 6 depilaciones). No es solo mirar el
+          catalogo: completa los datos y toca Crear paquete abajo.
+        </Muted>
 
-        <Field label="Nombre" value={name} onChangeText={setName} placeholder="Depilacion piernas" />
+        <Field label="Nombre del paquete" value={name} onChangeText={setName} placeholder="Depilacion piernas x6" />
         <Field
-          label="Sesiones"
+          label="Cantidad de sesiones"
           value={totalSessions}
           onChangeText={setTotalSessions}
           keyboardType="numeric"
         />
         <Field
-          label="Precio total (Gs.)"
+          label="Precio total del pack (Gs.)"
           value={totalPrice}
           onChangeText={setTotalPrice}
           keyboardType="numeric"
         />
         <Field label="Observaciones" value={notes} onChangeText={setNotes} multiline />
 
-        <Muted>Servicio asociado (opcional)</Muted>
-        {services.map((service) => {
-          const selected = serviceId === service.id;
-          return (
-            <PrimaryButton
-              key={service.id}
-              label={`${selected ? '✓ ' : ''}${service.name}`}
-              onPress={() => setServiceId(selected ? null : service.id)}
-            />
-          );
-        })}
+        <Text style={[styles.section, { color: colors.text }]}>Servicio de referencia (opcional)</Text>
+        <Muted>Solo etiqueta el pack; no agenda una cita. Podes dejarlo sin elegir.</Muted>
+        <View style={styles.wrap}>
+          {services.map((service) => {
+            const selected = serviceId === service.id;
+            return (
+              <Pressable
+                key={service.id}
+                onPress={() => selectService(service)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: selected ? colors.tint : colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}>
+                <Text style={{ color: selected ? '#FFFFFF' : colors.text, fontWeight: '600' }}>
+                  {service.name}
+                </Text>
+                <Text style={{ color: selected ? '#FFFFFF' : colors.textMuted, fontSize: 12 }}>
+                  {formatGs(service.price)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Card>
+          <Muted>
+            {serviceId
+              ? 'Servicio marcado. Ahora toca Crear paquete para guardar.'
+              : 'Sin servicio asociado. Igual podes crear el paquete con nombre, sesiones y precio.'}
+          </Muted>
+        </Card>
 
         <PrimaryButton label={saving ? 'Guardando...' : 'Crear paquete'} onPress={save} disabled={saving} />
       </ScrollView>
@@ -118,5 +159,23 @@ const styles = StyleSheet.create({
   content: {
     gap: 10,
     paddingBottom: 40,
+  },
+  section: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 6,
+  },
+  wrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: '46%',
+    gap: 2,
   },
 });

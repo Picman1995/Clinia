@@ -119,6 +119,7 @@ export type AppointmentRequest = {
   depositAmount: number;
   notes?: string;
   items: AppointmentItemRequest[];
+  rescheduleFromAppointmentId?: number;
 };
 
 export type AppointmentItemResponse = {

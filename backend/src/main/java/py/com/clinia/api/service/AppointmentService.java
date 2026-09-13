@@ -113,12 +113,40 @@ public class AppointmentService {
 
         applyPromotion(appointment, request.promotionId(), built, startAt.toLocalDate());
 
+        Appointment sourceAppointment = null;
+        boolean transferDeposit = request.rescheduleFromAppointmentId() != null;
+        if (transferDeposit) {
+            sourceAppointment = findDetailed(request.rescheduleFromAppointmentId());
+            if (!sourceAppointment.getPatient().getId().equals(patient.getId())) {
+                throw new BusinessException("La cita origen no pertenece al paciente");
+            }
+            if (sourceAppointment.getAppointmentStatus() != AppointmentStatus.CANCELADA) {
+                sourceAppointment.setAppointmentStatus(AppointmentStatus.CANCELADA);
+                appointmentRepository.save(sourceAppointment);
+            }
+        }
+
         BigDecimal depositAmount = AppointmentBalanceSupport.money(request.depositAmount());
         if (depositAmount.compareTo(appointment.getTotalAmount()) > 0) {
             throw new BusinessException("La sena no puede superar el total");
         }
+        if (transferDeposit && sourceAppointment != null) {
+            BigDecimal maxTransfer = AppointmentBalanceSupport.money(sourceAppointment.getPaidAmount());
+            if (depositAmount.compareTo(maxTransfer) > 0) {
+                throw new BusinessException(
+                        "La sena transferida no puede superar lo ya cobrado en la cita origen"
+                );
+            }
+        }
         appointment.setDepositAmount(depositAmount);
         AppointmentBalanceSupport.recalculate(appointment, depositAmount);
+
+        if (transferDeposit && sourceAppointment != null) {
+            String transferNote = "Seña transferida desde cita #" + sourceAppointment.getId()
+                    + " (sin nuevo cobro)";
+            String currentNotes = normalize(appointment.getNotes());
+            appointment.setNotes(currentNotes == null ? transferNote : currentNotes + " | " + transferNote);
+        }
 
         for (AppointmentItem item : built.items()) {
             item.setAppointment(appointment);
@@ -127,7 +155,7 @@ public class AppointmentService {
 
         Appointment saved = appointmentRepository.save(appointment);
 
-        if (depositAmount.compareTo(BigDecimal.ZERO) > 0) {
+        if (depositAmount.compareTo(BigDecimal.ZERO) > 0 && !transferDeposit) {
             Payment payment = new Payment();
             payment.setAppointment(saved);
             payment.setPatient(saved.getPatient());

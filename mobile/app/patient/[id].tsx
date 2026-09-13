@@ -90,6 +90,10 @@ export default function PatientDetailScreen() {
 
         <PrimaryButton label="Editar" onPress={() => router.push(`/patient/edit?id=${patient.id}`)} />
         <PrimaryButton
+          label="Agendar cita"
+          onPress={() => router.push(`/appointment/new?patientId=${patient.id}`)}
+        />
+        <PrimaryButton
           label={patient.status === 'ACTIVO' ? 'Desactivar' : 'Activar'}
           onPress={toggleStatus}
         />
@@ -97,9 +101,10 @@ export default function PatientDetailScreen() {
         <View style={styles.sectionHeader}>
           <Text style={[styles.section, { color: colors.text }]}>Paquetes / sesiones</Text>
           <Pressable onPress={() => router.push(`/package/new?patientId=${patient.id}`)}>
-            <Text style={{ color: colors.tint, fontWeight: '700' }}>Nuevo</Text>
+            <Text style={{ color: colors.tint, fontWeight: '700' }}>Nuevo paquete</Text>
           </Pressable>
         </View>
+        <Muted>Un paquete es un pack contratado (ej. 6 sesiones). Para una sola reserva usa Agendar cita.</Muted>
 
         {history?.packages.length ? (
           history.packages.map((pack) => (
