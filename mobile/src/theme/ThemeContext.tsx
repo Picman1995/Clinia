@@ -51,7 +51,17 @@ export function ThemePreferenceProvider({ children }: { children: React.ReactNod
   );
 
   if (!ready) {
-    return null;
+    return (
+      <ThemeContext.Provider
+        value={{
+          preference: 'system',
+          colorScheme: 'light',
+          colors: Colors.light,
+          setPreference,
+        }}>
+        {children}
+      </ThemeContext.Provider>
+    );
   }
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

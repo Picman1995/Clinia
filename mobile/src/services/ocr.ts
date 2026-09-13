@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system/legacy';
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080';
 const OCR_URL = process.env.EXPO_PUBLIC_OCR_URL ?? 'http://localhost:8090';
 
@@ -59,40 +61,37 @@ export function getApiBaseUrl() {
   return API_URL;
 }
 
-export async function extractHorariosFromImage(uri: string): Promise<OcrExtractResponse> {
-  const form = new FormData();
-  form.append('image', {
-    uri,
-    name: 'horarios.jpg',
-    type: 'image/jpeg',
-  } as unknown as Blob);
-
-  const response = await fetch(`${OCR_URL}/extract`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-    },
-    body: form,
-  });
-
+function parseOcrPayload(body: string, status: number): OcrExtractResponse {
   let payload: OcrExtractResponse;
   try {
-    payload = (await response.json()) as OcrExtractResponse;
+    payload = JSON.parse(body) as OcrExtractResponse;
   } catch {
-    throw new Error(`Error OCR HTTP ${response.status}`);
+    throw new Error(`Error OCR HTTP ${status}`);
   }
 
-  if (!response.ok) {
+  if (status < 200 || status >= 300) {
     const message =
-      payload?.assessment?.message ||
-      payload?.message ||
-      `Error OCR HTTP ${response.status}`;
+      payload?.assessment?.message || payload?.message || `Error OCR HTTP ${status}`;
     const error = new Error(message) as Error & { payload?: OcrExtractResponse };
     error.payload = payload;
     throw error;
   }
 
   return payload;
+}
+
+export async function extractHorariosFromImage(uri: string): Promise<OcrExtractResponse> {
+  const upload = await FileSystem.uploadAsync(`${OCR_URL}/extract`, uri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+    fieldName: 'image',
+    mimeType: 'image/jpeg',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  return parseOcrPayload(upload.body, upload.status);
 }
 
 export async function ocrHealth() {
