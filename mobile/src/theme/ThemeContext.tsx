@@ -23,18 +23,33 @@ export function ThemePreferenceProvider({ children }: { children: React.ReactNod
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((value) => {
-        if (value === 'light' || value === 'dark' || value === 'system') {
+    let cancelled = false;
+    (async () => {
+      try {
+        const value = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!cancelled && (value === 'light' || value === 'dark' || value === 'system')) {
           setPreferenceState(value);
         }
-      })
-      .finally(() => setReady(true));
+      } catch {
+        // Expo Go / web sin módulo nativo: seguir con system
+      } finally {
+        if (!cancelled) {
+          setReady(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const setPreference = useCallback(async (value: ThemePreference) => {
     setPreferenceState(value);
-    await AsyncStorage.setItem(STORAGE_KEY, value);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, value);
+    } catch {
+      // Preferencia en memoria si el storage no está disponible
+    }
   }, []);
 
   const colorScheme: ThemeName =

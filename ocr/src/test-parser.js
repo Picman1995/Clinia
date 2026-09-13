@@ -27,6 +27,20 @@ assert.ok(luis, 'Luis not found');
 assert.ok(luis.phone.includes('0981234567'));
 assert.equal(luis.appointmentHint.depositAmount, 50000);
 
+const junk = parseHorariosText(`
+12/9/2026
+9:00 a.m. - 9:40 a.m.
+Sena En Efectivo - 009999 -> CONFIRMADO
+(981)111-222
+DEPILACION ZONA INTIMA seña 50.000 gs en efectivo
+Lic. Maria
+`);
+assert.equal(
+  junk.patients.filter((p) => /sena|efectivo|^en$/i.test(p.fullName)).length,
+  0,
+  'Deposit phrases must not become patient names'
+);
+
 const payload = toCliniaPatientPayload(gladys);
 assert.equal(payload.documentNumber, null);
 

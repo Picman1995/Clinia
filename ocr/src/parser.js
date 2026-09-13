@@ -8,7 +8,49 @@ const DEPOSIT_RE =
 const CONFIRMADO_RE = /confirmado/i;
 const SERVICE_HINT_RE = /(DEPILACION|DEPILACIÓN|EVALUACI[OÓ]N|ESTETICA|ESTÉTICA)/i;
 const NOISE_RE =
-  /innovare|controleodonto|horarios|paciente|tipo de servicio|seguro|registro|emitido|aplicativo|lic\.\s*maria|confirmado|fecha|depilacion|depilación|evaluaci|zonas grandes|cuerpo completo/i;
+  /innovare|controleodonto|horarios|paciente|tipo de servicio|seguro|registro|emitido|aplicativo|lic\.\s*maria|confirmado|fecha|depilacion|depilación|evaluaci|zonas grandes|cuerpo completo|se[nñ][oa]|efectivo|transferencia|plataforma/i;
+const NAME_PARTICLES = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'da', 'do', 'das', 'dos']);
+const NAME_STOPWORDS = new Set([
+  'en',
+  'el',
+  'por',
+  'con',
+  'para',
+  'una',
+  'uno',
+  'al',
+  'sena',
+  'seno',
+  'seña',
+  'señe',
+  'gs',
+  'am',
+  'pm',
+  'transf',
+  'transferencia',
+  'efectivo',
+  'confirmado',
+  'fecha',
+  'paciente',
+  'tipo',
+  'servicio',
+  'seguro',
+  'registro',
+  'emitido',
+  'horarios',
+  'controleodonto',
+  'innovare',
+  'aplicativo',
+  'traves',
+  'través',
+  'plataforma',
+  'https',
+  'http',
+  'lic',
+  'net',
+  'co',
+  'ita',
+]);
 const IGNORED_PHONES = new Set(['0985400614']);
 
 function to24h(hour, minute, ampm) {
@@ -65,6 +107,14 @@ function extractDeposit(text) {
   };
 }
 
+function isNameParticle(word) {
+  return NAME_PARTICLES.has(word.toLowerCase());
+}
+
+function isNameStopword(word) {
+  return NAME_STOPWORDS.has(word.toLowerCase());
+}
+
 function cleanNameCandidate(raw) {
   if (!raw) {
     return null;
@@ -73,6 +123,7 @@ function cleanNameCandidate(raw) {
     .replace(/[()]/g, ' ')
     .replace(/->/g, ' ')
     .replace(CONFIRMADO_RE, ' ')
+    .replace(DEPOSIT_RE, ' ')
     .replace(EXTERNAL_ID_RE, ' ')
     .replace(new RegExp(PHONE_RE.source, 'g'), ' ')
     .replace(/[-–]/g, ' ')
@@ -87,6 +138,16 @@ function cleanNameCandidate(raw) {
     return null;
   }
   if (!words.every((w) => /^[A-Za-zÁÉÍÓÚÑáéíóúñ]+$/.test(w))) {
+    return null;
+  }
+  if (words.some((w) => isNameStopword(w))) {
+    return null;
+  }
+  if (isNameParticle(words[0]) || isNameParticle(words[words.length - 1])) {
+    return null;
+  }
+  const significant = words.filter((w) => !isNameParticle(w));
+  if (significant.length < 2 || significant.some((w) => w.length < 3)) {
     return null;
   }
   return words.join(' ');
