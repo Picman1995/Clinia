@@ -35,4 +35,19 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("patientId") Long patientId,
             @Param("status") EntityStatus status
     );
+
+    @Query("""
+            SELECT p FROM Payment p
+            JOIN FETCH p.patient
+            JOIN FETCH p.appointment
+            WHERE p.status = :status
+              AND p.paidAt >= :from
+              AND p.paidAt < :to
+            ORDER BY p.paidAt ASC
+            """)
+    List<Payment> findInPaidRange(
+            @Param("from") java.time.OffsetDateTime from,
+            @Param("to") java.time.OffsetDateTime to,
+            @Param("status") EntityStatus status
+    );
 }

@@ -252,6 +252,42 @@ export type PatientHistoryResponse = {
   recentPayments: PaymentResponse[];
 };
 
+export type DashboardResponse = {
+  date: string;
+  appointmentsToday: number;
+  patientsToday: number;
+  servicesToday: number;
+  incomeToday: number;
+  depositsToday: number;
+  pendingBalances: number;
+  pendingDepositAppointments: number;
+  professionalName: string;
+};
+
+export type ReportResponse = {
+  from: string;
+  to: string;
+  patientsAttended: number;
+  servicesPerformed: number;
+  appointmentsAttended: number;
+  promotionsApplied: number;
+  incomeDepilation: number;
+  incomeAesthetics: number;
+  incomeTotal: number;
+  depositsReceived: number;
+  paymentsReceived: number;
+  pendingBalances: number;
+  ownerCommissionPercentage: number;
+  ownerShare: number;
+  remainingShare: number;
+};
+
+export type BusinessSettingResponse = {
+  key: string;
+  value: string;
+  description?: string | null;
+};
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -385,6 +421,18 @@ export const api = {
     }),
   cancelTreatmentSession: (id: number) =>
     request<TreatmentSessionResponse>(`/api/treatment-sessions/${id}/cancel`, { method: 'POST' }),
+
+  getDashboard: (date?: string) =>
+    request<DashboardResponse>('/api/dashboard', { query: { date } }),
+  getReport: (from: string, to: string) =>
+    request<ReportResponse>('/api/reports', { query: { from, to } }),
+  listSettings: () => request<BusinessSettingResponse[]>('/api/settings'),
+  getSetting: (key: string) => request<BusinessSettingResponse>(`/api/settings/${key}`),
+  updateSetting: (key: string, value: string) =>
+    request<BusinessSettingResponse>(`/api/settings/${key}`, {
+      method: 'PUT',
+      body: { value },
+    }),
 };
 
 export function formatGs(amount: number | string) {

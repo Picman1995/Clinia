@@ -57,9 +57,43 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             SELECT DISTINCT a FROM Appointment a
             JOIN FETCH a.patient
             JOIN FETCH a.professional
+            LEFT JOIN FETCH a.items i
+            LEFT JOIN FETCH i.service s
+            LEFT JOIN FETCH s.category
+            LEFT JOIN FETCH i.serviceZone z
+            LEFT JOIN FETCH z.service zs
+            LEFT JOIN FETCH zs.category
+            WHERE a.startAt < :to
+              AND a.startAt >= :from
+            ORDER BY a.startAt ASC
+            """)
+    List<Appointment> findDetailedInStartRange(
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to
+    );
+
+    @Query("""
+            SELECT DISTINCT a FROM Appointment a
+            JOIN FETCH a.patient
+            JOIN FETCH a.professional
             LEFT JOIN FETCH a.items
             WHERE a.patient.id = :patientId
             ORDER BY a.startAt DESC
             """)
     List<Appointment> findByPatientId(@Param("patientId") Long patientId);
+
+    @Query("""
+            SELECT COALESCE(SUM(a.balanceAmount), 0) FROM Appointment a
+            WHERE a.appointmentStatus NOT IN :excluded
+              AND a.balanceAmount > 0
+            """)
+    java.math.BigDecimal sumPendingBalances(@Param("excluded") List<AppointmentStatus> excluded);
+
+    @Query("""
+            SELECT COUNT(a) FROM Appointment a
+            WHERE a.appointmentStatus NOT IN :excluded
+              AND a.depositAmount > 0
+              AND a.balanceAmount > 0
+            """)
+    long countWithPendingDepositBalance(@Param("excluded") List<AppointmentStatus> excluded);
 }

@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Muted, Screen, Title } from '@/src/components/ui';
+import { Field, Muted, PrimaryButton, Screen, Title } from '@/src/components/ui';
+import { api } from '@/src/services/api';
 import { ThemePreference, useThemePreference } from '@/src/theme/ThemeContext';
 
 const OPTIONS: { label: string; value: ThemePreference }[] = [
@@ -13,6 +15,40 @@ const OPTIONS: { label: string; value: ThemePreference }[] = [
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, preference, setPreference } = useThemePreference();
+  const [ownerPercentage, setOwnerPercentage] = useState('40');
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const setting = await api.getSetting('OWNER_COMMISSION_PERCENTAGE');
+      setOwnerPercentage(setting.value);
+    } catch {
+      setOwnerPercentage('40');
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  const saveOwnerPercentage = async () => {
+    const value = Number(ownerPercentage);
+    if (Number.isNaN(value) || value < 0 || value > 100) {
+      Alert.alert('Valor invalido', 'El porcentaje debe estar entre 0 y 100');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.updateSetting('OWNER_COMMISSION_PERCENTAGE', String(value));
+      Alert.alert('Guardado', 'Porcentaje del propietario actualizado');
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Screen>
@@ -41,12 +77,31 @@ export default function SettingsScreen() {
         })}
       </View>
 
+      <Muted>Participacion del propietario</Muted>
+      <Field
+        label="Porcentaje (%)"
+        value={ownerPercentage}
+        onChangeText={setOwnerPercentage}
+        keyboardType="numeric"
+      />
+      <PrimaryButton
+        label={saving ? 'Guardando...' : 'Guardar porcentaje'}
+        onPress={saveOwnerPercentage}
+        disabled={saving}
+      />
+
       <Muted>Modulos</Muted>
       <Pressable
         onPress={() => router.push('/promotion')}
         style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={{ color: colors.text, fontWeight: '700' }}>Promociones</Text>
         <Muted>Gestionar precios especiales</Muted>
+      </Pressable>
+      <Pressable
+        onPress={() => router.push('/reports')}
+        style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={{ color: colors.text, fontWeight: '700' }}>Reportes</Text>
+        <Muted>Ingresos y participacion</Muted>
       </Pressable>
     </Screen>
   );

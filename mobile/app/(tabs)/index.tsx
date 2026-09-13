@@ -1,95 +1,145 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { api, HealthResponse, ProfessionalResponse } from '@/src/services/api';
+import { Card, Muted, Screen } from '@/src/components/ui';
+import { api, DashboardResponse, formatGs, todayPy } from '@/src/services/api';
 import { useThemePreference } from '@/src/theme/ThemeContext';
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { colors } = useThemePreference();
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [professional, setProfessional] = useState<ProfessionalResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([api.health(), api.defaultProfessional()])
-      .then(([healthData, professionalData]) => {
-        setHealth(healthData);
-        setProfessional(professionalData);
-      })
-      .catch(() => setError('No se pudo conectar con la API. Verifica que el backend este en marcha.'))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      setDashboard(await api.getDashboard(todayPy()));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cargar el dashboard');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.brand, { color: colors.tint }]}>Clinia</Text>
-      <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-        Gestion de pacientes, agenda y finanzas
-      </Text>
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      load();
+    }, [load])
+  );
 
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Estado del sistema</Text>
-        {loading ? (
+  return (
+    <Screen>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              setLoading(true);
+              load();
+            }}
+          />
+        }>
+        <Text style={[styles.brand, { color: colors.tint }]}>Clinia</Text>
+        <Muted>Resumen del dia {dashboard?.date || todayPy()}</Muted>
+
+        {loading && !dashboard ? (
           <ActivityIndicator color={colors.tint} />
         ) : error ? (
-          <Text style={{ color: colors.danger }}>{error}</Text>
-        ) : (
+          <Muted>{error}</Muted>
+        ) : dashboard ? (
           <>
-            <Text style={{ color: colors.success }}>API: {health?.status}</Text>
-            <Text style={{ color: colors.textMuted }}>App: {health?.application}</Text>
-            <Text style={{ color: colors.textMuted }}>Zona: {health?.timezone}</Text>
-            <Text style={{ color: colors.textMuted }}>URL: {api.getBaseUrl()}</Text>
-          </>
-        )}
-      </View>
+            <View style={styles.grid}>
+              <View style={styles.half}>
+                <Card>
+                  <Muted>Citas hoy</Muted>
+                  <Text style={[styles.metric, { color: colors.text }]}>{dashboard.appointmentsToday}</Text>
+                </Card>
+              </View>
+              <View style={styles.half}>
+                <Card>
+                  <Muted>Pacientes hoy</Muted>
+                  <Text style={[styles.metric, { color: colors.text }]}>{dashboard.patientsToday}</Text>
+                </Card>
+              </View>
+            </View>
 
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Profesional por defecto</Text>
-        {professional ? (
-          <>
-            <Text style={[styles.professionalName, { color: colors.text }]}>
-              {professional.firstName} {professional.lastName}
-            </Text>
-            <Text style={{ color: colors.textMuted }}>{professional.specialty}</Text>
-            <Text style={{ color: colors.textMuted }}>CI: {professional.documentNumber}</Text>
+            <View style={styles.grid}>
+              <View style={styles.half}>
+                <Card>
+                  <Muted>Servicios atendidos</Muted>
+                  <Text style={[styles.metric, { color: colors.text }]}>{dashboard.servicesToday}</Text>
+                </Card>
+              </View>
+              <View style={styles.half}>
+                <Card>
+                  <Muted>Ingresos del dia</Muted>
+                  <Text style={[styles.money, { color: colors.tint }]}>
+                    {formatGs(dashboard.incomeToday)}
+                  </Text>
+                </Card>
+              </View>
+            </View>
+
+            <Card>
+              <Muted>Senas cobradas hoy</Muted>
+              <Text style={[styles.money, { color: colors.text }]}>
+                {formatGs(dashboard.depositsToday)}
+              </Text>
+              <Muted>Saldos pendientes: {formatGs(dashboard.pendingBalances)}</Muted>
+              <Muted>Citas con saldo/sena pendiente: {dashboard.pendingDepositAppointments}</Muted>
+            </Card>
+
+            <Card>
+              <Muted>Profesional</Muted>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{dashboard.professionalName}</Text>
+            </Card>
+
+            <Pressable
+              onPress={() => router.push('/reports')}
+              style={[styles.link, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>Ver reportes</Text>
+              <Muted>Ingresos, % propietario y filtros por fecha</Muted>
+            </Pressable>
           </>
-        ) : (
-          <Text style={{ color: colors.textMuted }}>Sin datos</Text>
-        )}
-      </View>
-    </View>
+        ) : null}
+      </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    gap: 16,
+  content: {
+    gap: 12,
+    paddingBottom: 30,
   },
   brand: {
     fontSize: 34,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 15,
-    marginBottom: 8,
+  grid: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  card: {
+  half: {
+    flex: 1,
+  },
+  metric: {
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  money: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  link: {
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  professionalName: {
-    fontSize: 18,
-    fontWeight: '600',
+    borderRadius: 14,
+    padding: 14,
+    gap: 4,
   },
 });
