@@ -1,8 +1,8 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Card, Field, Muted, PrimaryButton, Screen, Title } from '@/src/components/ui';
+import { Badge, Card, Field, Muted, PrimaryButton, Screen, SecondaryButton, Title } from '@/src/components/ui';
 import {
   api,
   AppointmentResponse,
@@ -15,12 +15,12 @@ import {
 } from '@/src/services/api';
 import { useThemePreference } from '@/src/theme/ThemeContext';
 
-const STATUS_OPTIONS: AppointmentStatus[] = [
-  'PENDIENTE',
-  'CONFIRMADA',
-  'ATENDIDA',
-  'CANCELADA',
-  'NO_ASISTIO',
+const STATUS_OPTIONS: { value: AppointmentStatus; label: string; hint: string }[] = [
+  { value: 'PENDIENTE', label: 'Pendiente', hint: 'Cita cargada, aun no confirmada' },
+  { value: 'CONFIRMADA', label: 'Confirmada', hint: 'Paciente confirmo asistencia' },
+  { value: 'ATENDIDA', label: 'Atendida', hint: 'Se presento y recibio el servicio' },
+  { value: 'NO_ASISTIO', label: 'No asistio', hint: 'No vino; libera el horario' },
+  { value: 'CANCELADA', label: 'Cancelada', hint: 'Cancelada o reagendada; libera el horario' },
 ];
 
 const PAYMENT_TYPES: PaymentType[] = ['PARCIAL', 'FINAL', 'OTRO'];
@@ -116,6 +116,35 @@ export default function AppointmentDetailScreen() {
     }
   };
 
+  const reschedule = () => {
+    if (!appointment) {
+      return;
+    }
+    Alert.alert(
+      'Reagendar cita',
+      'Se marcara esta cita como CANCELADA y podras crear una nueva fecha para el mismo paciente. La seña ya cobrada queda en el historial de pagos de esta cita.',
+      [
+        { text: 'Volver', style: 'cancel' },
+        {
+          text: 'Continuar',
+          onPress: async () => {
+            setUpdating(true);
+            try {
+              if (appointment.appointmentStatus !== 'CANCELADA') {
+                await api.updateAppointmentStatus(appointment.id, 'CANCELADA');
+              }
+              router.push(`/appointment/new?patientId=${appointment.patientId}` as Href);
+            } catch (err) {
+              Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo reagendar');
+            } finally {
+              setUpdating(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading || !appointment) {
     return (
       <Screen>
@@ -124,12 +153,15 @@ export default function AppointmentDetailScreen() {
     );
   }
 
+  const statusMeta =
+    STATUS_OPTIONS.find((item) => item.value === appointment.appointmentStatus) ?? STATUS_OPTIONS[0];
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Title>{appointment.patientName}</Title>
-          <Badge label={appointment.appointmentStatus} />
+          <Badge label={statusMeta.label} />
         </View>
 
         <Card>
@@ -219,7 +251,7 @@ export default function AppointmentDetailScreen() {
         {packages.length > 0 ? (
           <>
             <Text style={[styles.section, { color: colors.text }]}>
-              Consumir sesion al marcar ATENDIDA
+              Consumir sesion al marcar Atendida
             </Text>
             <View style={styles.wrap}>
               <Pressable
@@ -262,15 +294,16 @@ export default function AppointmentDetailScreen() {
           </>
         ) : null}
 
-        <Text style={[styles.section, { color: colors.text }]}>Cambiar estado</Text>
+        <Text style={[styles.section, { color: colors.text }]}>Estado de la cita</Text>
+        <Muted>{statusMeta.hint}</Muted>
         <View style={styles.wrap}>
           {STATUS_OPTIONS.map((status) => {
-            const selected = appointment.appointmentStatus === status;
+            const selected = appointment.appointmentStatus === status.value;
             return (
               <Pressable
-                key={status}
+                key={status.value}
                 disabled={updating}
-                onPress={() => changeStatus(status)}
+                onPress={() => changeStatus(status.value)}
                 style={[
                   styles.chip,
                   {
@@ -280,12 +313,21 @@ export default function AppointmentDetailScreen() {
                   },
                 ]}>
                 <Text style={{ color: selected ? '#FFFFFF' : colors.text, fontWeight: '700' }}>
-                  {status}
+                  {status.label}
                 </Text>
               </Pressable>
             );
           })}
         </View>
+
+        <SecondaryButton
+          label={updating ? 'Procesando...' : 'Reagendar (nueva fecha)'}
+          onPress={reschedule}
+          disabled={updating}
+        />
+        <Muted>
+          No asistio = no vino. Cancelada = anula o reagenda. Ambos liberan el horario para otra cita.
+        </Muted>
       </ScrollView>
     </Screen>
   );
