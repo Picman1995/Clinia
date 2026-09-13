@@ -161,12 +161,12 @@ public class CatalogService {
     }
 
     private py.com.clinia.api.entity.Service findService(Long id) {
-        return serviceRepository.findById(id)
+        return serviceRepository.findDetailedById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
     }
 
     private ServiceZone findZone(Long id) {
-        return zoneRepository.findById(id)
+        return zoneRepository.findDetailedById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Zona no encontrada"));
     }
 

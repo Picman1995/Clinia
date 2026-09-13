@@ -7,6 +7,7 @@ import py.com.clinia.api.entity.ServiceZone;
 import py.com.clinia.api.enums.EntityStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ServiceZoneRepository extends JpaRepository<ServiceZone, Long> {
 
@@ -18,4 +19,11 @@ public interface ServiceZoneRepository extends JpaRepository<ServiceZone, Long> 
             ORDER BY z.name ASC
             """)
     List<ServiceZone> search(@Param("serviceId") Long serviceId, @Param("status") EntityStatus status);
+
+    @Query("""
+            SELECT z FROM ServiceZone z
+            JOIN FETCH z.service
+            WHERE z.id = :id
+            """)
+    Optional<ServiceZone> findDetailedById(@Param("id") Long id);
 }

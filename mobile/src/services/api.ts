@@ -91,6 +91,69 @@ export type ServiceZoneRequest = {
   durationMinutes: number;
 };
 
+export type AppointmentStatus =
+  | 'PENDIENTE'
+  | 'CONFIRMADA'
+  | 'ATENDIDA'
+  | 'CANCELADA'
+  | 'NO_ASISTIO';
+
+export type PaymentStatus =
+  | 'PENDIENTE'
+  | 'SENIA_PAGADA'
+  | 'PAGADO'
+  | 'PAGO_PARCIAL'
+  | 'CANCELADO';
+
+export type AppointmentItemRequest = {
+  serviceId?: number;
+  serviceZoneId?: number;
+  quantity?: number;
+};
+
+export type AppointmentRequest = {
+  patientId: number;
+  professionalId?: number;
+  startAt: string;
+  depositAmount: number;
+  notes?: string;
+  items: AppointmentItemRequest[];
+};
+
+export type AppointmentItemResponse = {
+  id: number;
+  serviceId?: number | null;
+  serviceZoneId?: number | null;
+  nameSnapshot: string;
+  durationMinutes: number;
+  unitPriceSnapshot: number;
+  quantity: number;
+  lineTotalSnapshot: number;
+};
+
+export type AppointmentResponse = {
+  id: number;
+  patientId: number;
+  patientName: string;
+  patientDocument: string;
+  professionalId: number;
+  professionalName: string;
+  startAt: string;
+  endAt: string;
+  durationMinutes: number;
+  subtotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  depositAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  appointmentStatus: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  notes?: string | null;
+  promotionNameSnapshot?: string | null;
+  items: AppointmentItemResponse[];
+};
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -173,9 +236,56 @@ export const api = {
     request<ServiceZoneResponse>('/api/service-zones', { method: 'POST', body }),
   updateZone: (id: number, body: ServiceZoneRequest) =>
     request<ServiceZoneResponse>(`/api/service-zones/${id}`, { method: 'PUT', body }),
+
+  listAppointments: (from: string, to: string, professionalId?: number) =>
+    request<AppointmentResponse[]>('/api/appointments', { query: { from, to, professionalId } }),
+  getAppointment: (id: number) => request<AppointmentResponse>(`/api/appointments/${id}`),
+  createAppointment: (body: AppointmentRequest) =>
+    request<AppointmentResponse>('/api/appointments', { method: 'POST', body }),
+  updateAppointmentStatus: (id: number, appointmentStatus: AppointmentStatus) =>
+    request<AppointmentResponse>(`/api/appointments/${id}/status`, {
+      method: 'PUT',
+      body: { appointmentStatus },
+    }),
 };
 
 export function formatGs(amount: number | string) {
   const value = typeof amount === 'string' ? Number(amount) : amount;
   return `${new Intl.NumberFormat('es-PY').format(value)} Gs.`;
+}
+
+export function toPyOffset(date: string, time: string) {
+  return `${date}T${time}:00-03:00`;
+}
+
+export function dayRange(date: string) {
+  const next = addDays(date, 1);
+  return {
+    from: toPyOffset(date, '00:00'),
+    to: toPyOffset(next, '00:00'),
+  };
+}
+
+export function addDays(date: string, amount: number) {
+  const value = new Date(`${date}T12:00:00`);
+  value.setDate(value.getDate() + amount);
+  return value.toISOString().slice(0, 10);
+}
+
+export function todayPy() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Asuncion',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+export function formatTime(iso: string) {
+  return new Intl.DateTimeFormat('es-PY', {
+    timeZone: 'America/Asuncion',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
 }

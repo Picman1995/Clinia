@@ -41,6 +41,8 @@ function RootLayoutNav() {
         <Stack.Screen name="patient/new" options={{ title: 'Nuevo paciente' }} />
         <Stack.Screen name="patient/edit" options={{ title: 'Editar paciente' }} />
         <Stack.Screen name="patient/[id]" options={{ title: 'Detalle' }} />
+        <Stack.Screen name="appointment/new" options={{ title: 'Nueva reserva' }} />
+        <Stack.Screen name="appointment/[id]" options={{ title: 'Cita' }} />
       </Stack>
     </ThemeProvider>
   );
