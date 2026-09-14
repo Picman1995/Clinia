@@ -1,6 +1,6 @@
 # Clinia
 
-Aplicacion movil y API para gestion de pacientes, servicios, agenda, pagos y reportes de un negocio de depilacion y estetica.
+Aplicacion movil y API para gestion de pacientes, servicios, agenda, pagos y reportes de un negocio de depilacion y estetica. Carga de pacientes y fechas por OCR
 
 ## Licencia
 
